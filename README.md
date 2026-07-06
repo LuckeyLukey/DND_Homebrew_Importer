@@ -70,6 +70,9 @@ dndbeyond-homebrew-importer/
   examples/
     erdtree-longsword.json
     moonveil.json
+    stress-test-radiant-longsword.json
+    stress-test-eclipse-plate.json
+    stress-test-lantern-of-ember-stars.json
   scripts/
     build.mjs
     clean.mjs
@@ -90,6 +93,11 @@ dndbeyond-homebrew-importer/
   "type": "<item type>",
   "name": "<item name>",
   "baseWeapon": "<base weapon name>",
+  "baseArmor": "<base armor name>",
+  "magicItemType": "<magic item type>",
+  "dexBonus": "<dex bonus behavior>",
+  "strengthRequirement": "<strength requirement>",
+  "stealthCheck": "<stealth check behavior>",
   "rarity": "<rarity>",
   "requiresAttunement": false,
   "attunementDescription": "<who can attune, without 'requires attunement by a'>",
@@ -151,9 +159,12 @@ dndbeyond-homebrew-importer/
 
 Field notes:
 
-- `type`: Use `weapon`, `armor`, or `item`. For the current D&D Beyond magic-item flow, `weapon` maps the initial Base Type dropdown to `Weapon`.
+- `type`: Use `weapon`, `armor`, or `item`. The importer maps these to D&D Beyond's Base Item Type dropdown values `Weapon`, `Armor`, and `Item`.
 - `name`: Required. This is the item name.
 - `baseWeapon`: Visible D&D Beyond base weapon option, for example `Longsword`, `Dagger`, or `Quarterstaff`.
+- `baseArmor`: Visible D&D Beyond base armor option, for example `Leather`, `Chain Mail`, `Plate`, or `Shield`.
+- `magicItemType`: Visible D&D Beyond magic item type option for generic items, for example `Wondrous Item`, `Ring`, `Rod`, `Staff`, or `Wand`.
+- `dexBonus`, `strengthRequirement`, and `stealthCheck`: Best-effort armor metadata fields from D&D Beyond's initial armor form.
 - `rarity`: Visible D&D Beyond rarity option, for example `Common`, `Uncommon`, `Rare`, `Very Rare`, `Legendary`, `Artifact`, `Varies`, or `Unknown Rarity`.
 - `requiresAttunement`: Boolean. Use `true` or `false`.
 - `attunementDescription`: Required by D&D Beyond when `requiresAttunement` is `true`. D&D Beyond already renders `requires attunement by a` before this field, so provide only the target phrase, for example `creature proficient with longswords` or `wizard`. If omitted, the importer writes a generic local fallback so the required field is not left blank.
@@ -172,6 +183,8 @@ Required fields are attempted first:
 
 - Name
 - Base Weapon
+- Base Armor
+- Magic Item Type
 - Rarity
 - Description
 

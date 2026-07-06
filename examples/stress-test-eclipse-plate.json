@@ -1,0 +1,60 @@
+{
+  "type": "armor",
+  "name": "Eclipse Sentinel Plate",
+  "baseArmor": "Plate",
+  "rarity": "Legendary",
+  "requiresAttunement": true,
+  "attunementDescription": "creature proficient with heavy armor",
+  "dexBonus": "No Dex Bonus",
+  "strengthRequirement": "15",
+  "stealthCheck": "Disadvantage",
+  "description": "This blackened plate armor is edged with a pale corona that flares when its wearer shields an ally. The armor is designed to stress-test armor base fields, attunement text, charges, modifiers, and attached spell data.",
+  "notes": "Stress-test armor item for local importer validation. Do not publish without review.",
+  "actions": [
+    {
+      "name": "Eclipse Bulwark",
+      "activation": "Reaction",
+      "uses": 2,
+      "reset": "Long Rest",
+      "description": "When a creature you can see within 10 feet of you takes damage, you can reduce that damage by 1d10 + your proficiency bonus. Until the start of your next turn, you also gain resistance to radiant and necrotic damage."
+    },
+    {
+      "name": "Corona Step",
+      "activation": "Bonus Action",
+      "uses": 1,
+      "reset": "Short Rest",
+      "description": "Teleport up to 15 feet to an unoccupied space you can see. Until the end of the turn, opportunity attacks against you are made with disadvantage."
+    }
+  ],
+  "modifiers": [
+    {
+      "type": "Bonus",
+      "subType": "Armor Class",
+      "value": 1,
+      "details": "The armor grants a +1 bonus to Armor Class while worn."
+    },
+    {
+      "type": "Resistance",
+      "subType": "Necrotic",
+      "details": "Resistance granted while Eclipse Bulwark is active."
+    }
+  ],
+  "conditions": [
+    {
+      "condition": "Frightened",
+      "duration": 1,
+      "durationUnit": "Round",
+      "details": "A hostile creature that critically misses the wearer can be frightened until the end of its next turn, at the DM's discretion."
+    }
+  ],
+  "spells": [
+    {
+      "name": "Shield",
+      "minCharges": 1,
+      "maxCharges": 1,
+      "saveDc": 16,
+      "castAtLevel": "1",
+      "details": "You can expend 1 charge to cast Shield from the armor without material components."
+    }
+  ]
+}

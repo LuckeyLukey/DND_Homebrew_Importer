@@ -1,0 +1,58 @@
+{
+  "type": "item",
+  "name": "Lantern of Ember Stars",
+  "magicItemType": "Wondrous Item",
+  "rarity": "Rare",
+  "requiresAttunement": true,
+  "attunementDescription": "spellcaster",
+  "description": "This brass lantern contains a slow orbit of ember-like motes. It is designed to stress-test generic item creation, magic item type selection, attunement text, charges, notes, modifiers, conditions, and attached spells.",
+  "notes": "Stress-test generic item for local importer validation. Do not publish without review.",
+  "actions": [
+    {
+      "name": "Kindle Star",
+      "activation": "Action",
+      "uses": 4,
+      "reset": "Dawn",
+      "description": "Choose a point you can see within 60 feet. The lantern sheds bright light in a 20-foot radius centered on that point for 1 minute. Invisible creatures in the light do not benefit from being invisible."
+    },
+    {
+      "name": "Bank the Flame",
+      "activation": "Bonus Action",
+      "uses": 1,
+      "reset": "Short Rest",
+      "description": "Dim the lantern's light and gain advantage on the next Dexterity (Stealth) check you make before the end of your next turn."
+    }
+  ],
+  "modifiers": [
+    {
+      "type": "Bonus",
+      "subType": "Spell Attacks",
+      "value": 1,
+      "details": "While holding the lantern, you gain a +1 bonus to spell attack rolls."
+    },
+    {
+      "type": "Sense",
+      "subType": "Darkvision",
+      "value": 60,
+      "details": "While attuned, the lantern grants darkvision out to 60 feet when lit."
+    }
+  ],
+  "conditions": [
+    {
+      "condition": "Invisible",
+      "duration": 1,
+      "durationUnit": "Minute",
+      "details": "Creatures revealed by Kindle Star lose the benefit of invisibility while they remain in the lantern's light."
+    }
+  ],
+  "spells": [
+    {
+      "name": "Faerie Fire",
+      "minCharges": 1,
+      "maxCharges": 1,
+      "saveDc": 14,
+      "castAtLevel": "1",
+      "details": "You can expend 1 charge to cast Faerie Fire from the lantern. The lantern is the spellcasting focus."
+    }
+  ]
+}

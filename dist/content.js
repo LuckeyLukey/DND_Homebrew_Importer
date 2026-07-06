@@ -68,11 +68,18 @@
     await fillTextField(report, "Name", item.name, ["name", "item name"], {
       selectors: ["#field-name"]
     });
-    await fillSelectLike(report, "Item Base Type", item.type === "weapon" ? "Weapon" : undefined, [
+    await fillSelectLike(report, "Item Base Type", getBaseItemTypeLabel(item.type), [
       "item base type",
       "base type"
     ], {
       selectors: ["#field-item-base-type"],
+      warnOnMissing: false
+    });
+    await fillSelectLike(report, "Magic Item Type", item.magicItemType, [
+      "magic item type",
+      "item type"
+    ], {
+      selectors: ["#field-magic-item-type"],
       warnOnMissing: false
     });
     await fillSelectLike(report, "Base Weapon", item.baseWeapon, [
@@ -81,6 +88,34 @@
       "weapon"
     ], {
       selectors: ["#field-base-weapon"]
+    });
+    await fillSelectLike(report, "Base Armor", item.baseArmor, [
+      "base armor",
+      "armor"
+    ], {
+      selectors: ["#field-base-armor"],
+      warnOnMissing: false
+    });
+    await fillSelectLike(report, "Dex Bonus", item.dexBonus, [
+      "dex bonus",
+      "dexterity bonus"
+    ], {
+      selectors: ["#field-dex-bonus"],
+      warnOnMissing: false
+    });
+    await fillTextField(report, "Strength Requirement", item.strengthRequirement, [
+      "strength requirement",
+      "str requirement"
+    ], {
+      selectors: ["#field-strength-requirement", "#field-str-requirement"],
+      warnOnMissing: false
+    });
+    await fillSelectLike(report, "Stealth Check", item.stealthCheck, [
+      "stealth check",
+      "stealth"
+    ], {
+      selectors: ["#field-stealth-check"],
+      warnOnMissing: false
     });
     await fillSelectLike(report, "Rarity", item.rarity, ["rarity"], {
       selectors: ["#field-rarity"]
@@ -367,6 +402,14 @@
     return Boolean(
       document.querySelector("#magic-item-form, #field-item-base-type, #field-rarity, #field-item-description-wysiwyg")
     );
+  }
+
+  function getBaseItemTypeLabel(type) {
+    const normalizedType = normalize(type);
+    if (normalizedType === "weapon") return "Weapon";
+    if (normalizedType === "armor" || normalizedType === "armour") return "Armor";
+    if (normalizedType === "item" || normalizedType === "wondrous item" || normalizedType === "wondrous") return "Item";
+    return type;
   }
 
   function isModifierPage() {
@@ -1469,15 +1512,33 @@
       sections.push(paragraphsToHtml(item.description));
     }
 
-    if (item.damage?.dice || item.damage?.type || item.properties?.length) {
+    if (item.damage?.dice || item.damage?.type || item.properties?.length || item.baseWeapon || item.baseArmor || item.magicItemType) {
       const details = [];
+      if (item.baseWeapon) {
+        details.push(`<li><strong>Base Weapon:</strong> ${escapeHtml(item.baseWeapon)}</li>`);
+      }
+      if (item.baseArmor) {
+        details.push(`<li><strong>Base Armor:</strong> ${escapeHtml(item.baseArmor)}</li>`);
+      }
+      if (item.magicItemType) {
+        details.push(`<li><strong>Magic Item Type:</strong> ${escapeHtml(item.magicItemType)}</li>`);
+      }
+      if (item.dexBonus) {
+        details.push(`<li><strong>Dex Bonus:</strong> ${escapeHtml(item.dexBonus)}</li>`);
+      }
+      if (item.strengthRequirement) {
+        details.push(`<li><strong>Strength Requirement:</strong> ${escapeHtml(item.strengthRequirement)}</li>`);
+      }
+      if (item.stealthCheck) {
+        details.push(`<li><strong>Stealth Check:</strong> ${escapeHtml(item.stealthCheck)}</li>`);
+      }
       if (item.damage?.dice || item.damage?.type) {
         details.push(`<li><strong>Damage:</strong> ${escapeHtml([item.damage?.dice, item.damage?.type].filter(Boolean).join(" "))}</li>`);
       }
       if (item.properties?.length) {
         details.push(`<li><strong>Properties:</strong> ${escapeHtml(item.properties.join(", "))}</li>`);
       }
-      sections.push(`<h3>Weapon Details</h3><ul>${details.join("")}</ul>`);
+      sections.push(`<h3>Item Details</h3><ul>${details.join("")}</ul>`);
     }
 
     const actions = getItemActions(item);
