@@ -78,7 +78,7 @@
     {
       "level": 1,
       "modifier": "Damage Reduction - All Damage",
-      "effect": "Additional Dice",
+      "effect": "Additional Points",
       "diceCount": 1,
       "dieType": "d8",
       "details": "The damage reduction increases by 1d8 for each spell slot level above 4th."

@@ -272,7 +272,7 @@ Field notes:
 - `areaOfEffect`, `attackType`, `saveType`, `effectOnMiss`, `effectOnSaveSuccess`, `effectOnSaveFail`, and `spellEffectTags`: Spell edit-page additional information fields. These are best-effort because D&D Beyond only exposes some of them after the spell is saved once.
 - `spellModifiers`: Spell modifier subpage entries. If omitted on a spell JSON, `modifiers` is used as a fallback.
 - `spellConditions`: Spell condition subpage entries. If omitted on a spell JSON, `conditions` is used as a fallback.
-- `higherLevels`: Spell higher-level scaling subpage entries.
+- `higherLevels`: Spell higher-level scaling subpage entries. D&D Beyond's visible Scale Effect options include `Additional Count`, `Additional Creatures`, `Additional Points`, `Additional Targets`, `Extended Area`, `Extended Duration`, `Extended Range`, and `Special`. For extra damage or healing dice, use `Additional Points` together with `diceCount` and `dieType`; the importer also maps `Additional Dice` to `Additional Points`.
 
 ## What It Tries To Fill
 

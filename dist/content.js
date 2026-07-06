@@ -1238,7 +1238,8 @@
       warnOnMissing: false
     }) || filled;
 
-    filled = await fillSelectLike(report, "Scale Effect", higherLevel.effect || higherLevel.scaleEffect, [
+    const scaleEffect = normalizeScaleEffect(higherLevel.effect || higherLevel.scaleEffect);
+    filled = await fillSelectLike(report, "Scale Effect", scaleEffect, [
       "scale effect",
       "effect type"
     ], {
@@ -1281,6 +1282,31 @@
     }
 
     return filled;
+  }
+
+  function normalizeScaleEffect(value) {
+    const normalized = normalize(value);
+    const aliases = {
+      "additional dice": "Additional Points",
+      "add dice": "Additional Points",
+      "extra dice": "Additional Points",
+      "additional die": "Additional Points",
+      "additional damage": "Additional Points",
+      "additional healing": "Additional Points",
+      "additional point": "Additional Points",
+      "additional points": "Additional Points",
+      "additional target": "Additional Targets",
+      "additional targets": "Additional Targets",
+      "additional creature": "Additional Creatures",
+      "additional creatures": "Additional Creatures",
+      "additional count": "Additional Count",
+      "extended area": "Extended Area",
+      "extended duration": "Extended Duration",
+      "extended range": "Extended Range",
+      "special": "Special"
+    };
+
+    return aliases[normalized] || value;
   }
 
   function findModifierCreateUrl() {
