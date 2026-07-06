@@ -63,9 +63,29 @@ textarea {
 }
 
 textarea:focus,
-button:focus {
+button:focus,
+input:focus {
   outline: 2px solid #4263eb;
   outline-offset: 2px;
+}
+
+.options {
+  display: grid;
+  gap: 7px;
+  border: 1px solid #d2d7df;
+  border-radius: 6px;
+  padding: 9px;
+  background: #ffffff;
+}
+
+.option-row {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 8px;
+  align-items: start;
+  color: #2f3a49;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 button {

@@ -5,8 +5,11 @@ const copyLogButton = document.querySelector("#copy-log-button");
 const statusNode = document.querySelector("#status");
 const logNode = document.querySelector("#log");
 const versionBadge = document.querySelector("#version-badge");
+const autoNavigateSubpages = document.querySelector("#auto-navigate-subpages");
+const autoSaveSubpages = document.querySelector("#auto-save-subpages");
 
 const STORAGE_KEY = "dndbeyond-homebrew-importer:last-json";
+const OPTIONS_STORAGE_KEY = "dndbeyond-homebrew-importer:options";
 
 const manifest = chrome.runtime.getManifest();
 versionBadge.textContent = `v${manifest.version}`;
@@ -81,10 +84,19 @@ chrome.storage?.local?.get?.(STORAGE_KEY, (stored) => {
   textarea.value = stored?.[STORAGE_KEY] || JSON.stringify(sampleItem, null, 2);
 });
 
+chrome.storage?.local?.get?.(OPTIONS_STORAGE_KEY, (stored) => {
+  const options = stored?.[OPTIONS_STORAGE_KEY] || {};
+  autoNavigateSubpages.checked = Boolean(options.autoNavigateSubpages);
+  autoSaveSubpages.checked = Boolean(options.autoSaveSubpages);
+});
+
 textarea.addEventListener("input", () => {
   chrome.storage?.local?.set?.({ [STORAGE_KEY]: textarea.value });
   setStatus("", "");
 });
+
+autoNavigateSubpages.addEventListener("change", persistOptions);
+autoSaveSubpages.addEventListener("change", persistOptions);
 
 clearButton.addEventListener("click", () => {
   textarea.value = "";
@@ -118,7 +130,10 @@ importButton.addEventListener("click", async () => {
 
     const response = await chrome.tabs.sendMessage(tab.id, {
       type: "DNDBEYOND_IMPORT_ITEM",
-      payload: parsed.value
+      payload: {
+        item: parsed.value,
+        options: getImportOptions()
+      }
     });
 
     if (!response?.ok) {
@@ -175,4 +190,15 @@ function appendLog(line) {
 function setStatus(message, className) {
   statusNode.textContent = message;
   statusNode.className = `status${className ? ` ${className}` : ""}`;
+}
+
+function getImportOptions() {
+  return {
+    autoNavigateSubpages: autoNavigateSubpages.checked,
+    autoSaveSubpages: autoSaveSubpages.checked
+  };
+}
+
+function persistOptions() {
+  chrome.storage?.local?.set?.({ [OPTIONS_STORAGE_KEY]: getImportOptions() });
 }

@@ -2,7 +2,7 @@
 
 Local Chrome Manifest V3 extension for best-effort autofill of D&D Beyond homebrew item forms from structured JSON.
 
-It does not publish, share, scrape, read cookies, read passwords, call paid APIs, or click Save. It only sends JSON from the popup to the content script running on the D&D Beyond tab you already opened.
+It does not publish, share, scrape, read cookies, read passwords, or call paid APIs. By default it only fills forms on the D&D Beyond tab you already opened and does not save the main item. Optional subpage automation can open modifier, condition, and spell pages; subpage saving only happens when you explicitly enable it in the popup.
 
 ## Install
 
@@ -46,6 +46,13 @@ After you manually save the item, D&D Beyond opens/unlocks the edit workflow wit
 - Best-effort modifier notes
 
 Modifiers, conditions, and attached spells are not inline fields on the magic-item edit page. D&D Beyond exposes them through **Add a Modifier**, **Add a Condition**, and **Add a Spell**, each opening a separate create page. The importer logs the matching URL when it finds one. Open that page and run the import again to best-effort fill the first object from the matching `modifiers`, `conditions`, or `spells` array.
+
+The popup also has two optional workflow toggles:
+
+- **Open modifier, condition, and spell pages automatically**: after the second-pass edit-page import, the extension stores a local workflow queue and opens the first matching D&D Beyond subpage.
+- **Auto-save subpage entries**: after a subpage is filled, the extension clicks that subpage's **Save** button, returns to the item edit page, and continues with the next queued entry.
+
+This automatic saving is intentionally limited to subpages. The main item edit page still requires manual review and manual saving.
 
 On the edit page, the extension will finish with:
 
@@ -236,7 +243,8 @@ Keep type-specific logic best-effort and log warnings for dynamic controls that 
 
 ## Safety Notes
 
-- No Save button is clicked.
+- The main item Save / Save Changes button is never clicked.
+- Modifier, condition, and spell subpage Save buttons are clicked only when **Auto-save subpage entries** is explicitly enabled in the popup.
 - The initial create page and the later edit page are intentionally treated as two separate import passes.
 - No external network calls are made by extension code.
 - No cookies, tokens, passwords, or account data are read.

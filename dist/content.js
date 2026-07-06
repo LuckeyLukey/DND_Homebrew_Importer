@@ -1,20 +1,38 @@
 (() => {
   const MESSAGE_TYPE = "DNDBEYOND_IMPORT_ITEM";
   const LOG_PREFIX = "[DDB Homebrew Importer]";
+  const WORKFLOW_KEY = "dndbeyond-homebrew-importer:workflow";
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type !== MESSAGE_TYPE) {
       return false;
     }
 
-    importItem(message.payload)
+    const { item, options } = parseImportPayload(message.payload);
+    importItem(item, options)
       .then((report) => sendResponse({ ok: true, report }))
       .catch((error) => sendResponse({ ok: false, error: error.message }));
 
     return true;
   });
 
-  async function importItem(item) {
+  resumeStoredWorkflow();
+
+  function parseImportPayload(payload) {
+    if (payload?.item) {
+      return {
+        item: payload.item,
+        options: payload.options || {}
+      };
+    }
+
+    return {
+      item: payload,
+      options: {}
+    };
+  }
+
+  async function importItem(item, options = {}) {
     const report = createReport();
     const pagePhase = detectPagePhase();
     const magicItemForm = isMagicItemForm();
@@ -137,10 +155,204 @@
       await reportSeparateCreatePage(report, "Spells", "spell", findSpellCreateUrl(), item.spells.map(formatSpellSummary));
     }
 
+    if (options.autoNavigateSubpages) {
+      const started = await startSubpageWorkflow(report, item, options);
+      if (started) {
+        report.finalMessage = options.autoSaveSubpages
+          ? "Unterseiten-Workflow gestartet. Modifier, Conditions und Spells werden automatisch erstellt und gespeichert."
+          : "Unterseiten-Workflow gestartet. Die erste Unterseite wird geöffnet und ausgefüllt; bitte dort manuell speichern.";
+        report.summary = summarize(report.entries);
+        return report;
+      }
+    }
+
     report.info("Import abgeschlossen. Bitte kontrollieren und manuell speichern.");
     report.finalMessage = "Import abgeschlossen. Bitte kontrollieren und manuell speichern.";
     report.summary = summarize(report.entries);
     return report;
+  }
+
+  async function resumeStoredWorkflow() {
+    await waitForPageToSettle();
+    const state = await getStoredWorkflow();
+    if (!state?.active || !state.item) return;
+
+    const report = createReport();
+
+    if (isModifierPage() || isConditionPage() || isSpellPage()) {
+      await runWorkflowSubpage(report, state);
+      return;
+    }
+
+    if (isMagicItemEditPage()) {
+      await continueWorkflowFromEditPage(report, state);
+    }
+  }
+
+  async function startSubpageWorkflow(report, item, options) {
+    const queue = buildSubpageQueue(item);
+    if (!queue.length) {
+      report.info("Automatic subpage workflow: no modifier, condition, or spell entries found.");
+      return false;
+    }
+
+    const firstMissingUrl = queue.find((entry) => !entry.url);
+    if (firstMissingUrl) {
+      report.warn(`Automatic subpage workflow: Add a ${firstMissingUrl.kind} URL was not found. Expand that section or add it manually.`);
+      return false;
+    }
+
+    const state = {
+      active: true,
+      item,
+      options: {
+        autoNavigateSubpages: Boolean(options.autoNavigateSubpages),
+        autoSaveSubpages: Boolean(options.autoSaveSubpages)
+      },
+      returnUrl: window.location.href,
+      queue,
+      activeEntry: null,
+      updatedAt: Date.now()
+    };
+
+    await storeWorkflow(state);
+    report.info(`Automatic subpage workflow queued ${queue.length} entr${queue.length === 1 ? "y" : "ies"}.`);
+    setTimeout(() => continueWorkflowFromEditPage(createReport(), state), 250);
+    return true;
+  }
+
+  function buildSubpageQueue(item) {
+    return [
+      ...buildEntries("modifier", item.modifiers, findModifierCreateUrl()),
+      ...buildEntries("condition", item.conditions, findConditionCreateUrl()),
+      ...buildEntries("spell", item.spells, findSpellCreateUrl())
+    ];
+  }
+
+  function buildEntries(kind, values, url) {
+    if (!Array.isArray(values)) return [];
+    return values.map((_value, index) => ({ kind, index, url }));
+  }
+
+  async function continueWorkflowFromEditPage(report, state) {
+    if (state.activeEntry) return;
+
+    const [next, ...remaining] = state.queue || [];
+    if (!next) {
+      await clearWorkflow();
+      report.info("Automatic subpage workflow completed. Main item changes still need manual review/save if changed.");
+      return;
+    }
+
+    const freshUrl = findCreateUrlForKind(next.kind) || next.url;
+    if (!freshUrl) {
+      await clearWorkflow();
+      report.warn(`Automatic subpage workflow stopped: Add a ${next.kind} URL was not found.`);
+      return;
+    }
+
+    const nextState = {
+      ...state,
+      queue: remaining,
+      activeEntry: {
+        ...next,
+        url: freshUrl
+      },
+      updatedAt: Date.now()
+    };
+    await storeWorkflow(nextState);
+    report.info(`Opening ${next.kind} ${next.index + 1}.`);
+    window.location.href = freshUrl;
+  }
+
+  function findCreateUrlForKind(kind) {
+    if (kind === "modifier") return findModifierCreateUrl();
+    if (kind === "condition") return findConditionCreateUrl();
+    if (kind === "spell") return findSpellCreateUrl();
+    return "";
+  }
+
+  async function runWorkflowSubpage(report, state) {
+    const entry = state.activeEntry;
+    if (!entry) return;
+
+    const expectedPage = (entry.kind === "modifier" && isModifierPage()) ||
+      (entry.kind === "condition" && isConditionPage()) ||
+      (entry.kind === "spell" && isSpellPage());
+    if (!expectedPage) return;
+
+    report.info(`Automatic subpage workflow: filling ${entry.kind} ${entry.index + 1}.`);
+    const filled = await fillWorkflowEntry(report, state.item, entry);
+    if (!filled) {
+      report.warn(`Automatic subpage workflow: ${entry.kind} ${entry.index + 1} was not filled.`);
+      await clearWorkflow();
+      return;
+    }
+
+    if (!state.options?.autoSaveSubpages) {
+      await storeWorkflow({ ...state, active: false, updatedAt: Date.now() });
+      report.info("Automatic subpage workflow paused. Review this page and save manually.");
+      return;
+    }
+
+    await storeWorkflow({
+      ...state,
+      activeEntry: null,
+      updatedAt: Date.now()
+    });
+
+    const clicked = clickSubpageSaveButton();
+    if (!clicked) {
+      await clearWorkflow();
+      report.warn("Automatic subpage workflow stopped: Save button was not found.");
+    }
+  }
+
+  async function fillWorkflowEntry(report, item, entry) {
+    if (entry.kind === "modifier") {
+      return fillModifierPage(report, item.modifiers?.[entry.index]);
+    }
+    if (entry.kind === "condition") {
+      return fillConditionPage(report, item.conditions?.[entry.index]);
+    }
+    if (entry.kind === "spell") {
+      return fillSpellPage(report, item.spells?.[entry.index]);
+    }
+    return false;
+  }
+
+  function clickSubpageSaveButton() {
+    const buttons = Array.from(document.querySelectorAll("button, input[type='submit']"));
+    const button = buttons.find((candidate) =>
+      candidate.matches("button[type='submit'], input[type='submit']") &&
+      normalize(candidate.textContent || candidate.value).includes("save")
+    ) || buttons.find((candidate) => normalize(candidate.textContent || candidate.value) === "save");
+
+    if (!button) return false;
+    setTimeout(() => button.click(), 250);
+    return true;
+  }
+
+  function isMagicItemEditPage() {
+    return detectPagePhase() === "edit" && !isModifierPage() && !isConditionPage() && !isSpellPage();
+  }
+
+  function getStoredWorkflow() {
+    return new Promise((resolve) => {
+      chrome.storage?.local?.get?.(WORKFLOW_KEY, (stored) => resolve(stored?.[WORKFLOW_KEY] || null));
+    });
+  }
+
+  function storeWorkflow(state) {
+    return new Promise((resolve) => {
+      chrome.storage?.local?.set?.({ [WORKFLOW_KEY]: state }, resolve);
+    });
+  }
+
+  function clearWorkflow() {
+    return new Promise((resolve) => {
+      chrome.storage?.local?.remove?.(WORKFLOW_KEY, resolve);
+    });
   }
 
   function detectPagePhase() {
