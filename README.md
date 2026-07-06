@@ -27,7 +27,7 @@ On the initial create page, D&D Beyond only exposes the first set of fields. The
 - Name
 - Rarity
 - Item Base Type
-- Base Weapon or item Type
+- Base Weapon, Base Armor, or Magic Item Type
 - Requires Attunement
 - Attunement Description, when Requires Attunement is enabled
 - Description
@@ -35,7 +35,7 @@ On the initial create page, D&D Beyond only exposes the first set of fields. The
 Then it stops and shows:
 
 ```text
-Initiale Maske gefüllt. Bitte kontrollieren, manuell speichern und danach auf der Edit-Seite erneut importieren.
+Initiale Maske gefuellt. Bitte kontrollieren, manuell speichern und danach auf der Edit-Seite erneut importieren.
 ```
 
 After you manually save the item, D&D Beyond opens/unlocks the edit workflow with additional fields. Run the import again there to fill the second pass as far as the UI allows:
@@ -44,17 +44,19 @@ After you manually save the item, D&D Beyond opens/unlocks the edit workflow wit
 - Charges / limited uses
 - Charge reset condition
 - Tags and dynamic metadata where D&D Beyond exposes fillable controls
-- Best-effort modifier notes
+- Modifier, condition, and attached spell subpage entries
 
-Modifiers, conditions, and attached spells are not inline fields on the magic-item edit page. D&D Beyond exposes them through **Add a Modifier**, **Add a Condition**, and **Add a Spell**, each opening a separate create page. The importer logs the matching URL when it finds one. Open that page and run the import again to best-effort fill the first object from the matching `modifiers`, `conditions`, or `spells` array.
+Modifiers, conditions, and attached spells are not inline fields on the magic-item edit page. D&D Beyond exposes them through **Add a Modifier**, **Add a Condition**, and **Add a Spell**, each opening a separate create page. In manual mode, the importer logs the matching URL when it finds one. Open that page and run the import again to best-effort fill the first object from the matching `modifiers`, `conditions`, or `spells` array. In automatic mode, the importer queues those subpages for you.
 
-The popup also has two optional workflow toggles:
+The popup also has a local file picker and two optional workflow toggles:
 
 - **Choose File**: reads a local `.json` file in the browser, validates it, formats it into the textarea, and stores it locally for the next popup open. The file is not uploaded anywhere.
 - **Open modifier, condition, and spell pages automatically**: after the second-pass edit-page import, the extension stores a local workflow queue and opens the first matching D&D Beyond subpage.
 - **Auto-save subpage entries**: after a subpage is filled, the extension clicks that subpage's **Save** button, returns to the item edit page, and continues with the next queued entry.
 
 This automatic saving is intentionally limited to subpages. The main item edit page still requires manual review and manual saving.
+
+When the automatic subpage workflow is enabled, the importer does not log the manual "open Add a Spell/Condition/Modifier" warnings. It queues the entries instead. Before opening a new subpage, it reads the existing D&D Beyond tables and skips matching modifiers, conditions, or spells so repeated imports do not create duplicates.
 
 On the edit page, the extension will finish with:
 
@@ -175,7 +177,7 @@ Field notes:
 - `description`: Full item text. The importer writes this into the D&D Beyond TinyMCE description field.
 - `notes`: Edit-page field only. D&D Beyond unlocks it after the item is saved once.
 - `actions`: Optional array of generic action or feature blocks. Their text is included in the description; the first action with `uses` and `reset` is also mapped to charges on the edit page when those fields exist.
-- `modifiers`: Best-effort. The automatic subpage workflow can open D&D Beyond's `Add a Modifier` page, fill one modifier at a time, optionally save it, and return to the edit page. Before opening a new subpage, it compares the JSON entry with the existing modifier table and skips entries that already exist.
+- `modifiers`: Best-effort. In manual mode, the importer logs the `Add a Modifier` URL so you can open the subpage and run the import there. In automatic mode, it can open D&D Beyond's `Add a Modifier` page, fill one modifier at a time, optionally save it, and return to the edit page. Before opening a new subpage, it compares the JSON entry with the existing modifier table and skips entries that already exist.
 - `conditions`: Best-effort. The automatic subpage workflow can fill condition subpages and skips existing condition rows with the same condition, duration, and details.
 - `spells`: Best-effort. The automatic subpage workflow can fill attached spell subpages and skips existing spell rows with the same spell name, charges, save DC, and details.
 
@@ -211,7 +213,7 @@ Every found or missing field is logged in the popup and in the page console with
 D&D Beyond pages can be React-heavy and may use custom selects or dynamic modal controls. The content script uses layered matching:
 
 1. Prefer known D&D Beyond field IDs from the current form, such as `#field-name`, `#field-rarity`, `#field-item-base-type`, `#field-base-weapon`, `#field-requires-attunement`, `#field-attunement-description`, `#field-item-description-wysiwyg`, `#field-notes`, `#field-has-charges`, `#field-number-of-charges`, `#field-charge-reset-condition`, `#field-spell-modifier-type`, `#field-spell-modifier-sub-type`, `#field-fixed-value`, `#field-item-condition`, and `#field-item-spell`.
-2. Fill TinyMCE-backed description fields through TinyMCE when available, then update the hidden WYSIWYG and markup textareas.
+2. Fill TinyMCE-backed description fields with CSP-safe DOM updates to the visible editor iframe and the hidden WYSIWYG/markup textareas.
 3. Find fallback controls by associated labels, wrapping labels, nearby container text, placeholder, name, id, aria-label, test id, and class.
 4. For select-like values, try native `<select>` first.
 5. Try combobox/input controls next.
@@ -246,7 +248,7 @@ Prefer adding multiple search terms for D&D Beyond labels that may vary. Terms a
 
 ## Extending Item Types
 
-The importer currently treats the provided schema as a weapon-oriented item, but the dispatcher is intentionally small. Add type-specific functions beside `fillActions`:
+The importer has first-pass support for `weapon`, `armor`, and generic `item` magic-item forms. For campaign-specific fields or new D&D Beyond sections, keep type-specific functions small and call them from `importItem`:
 
 ```js
 if (item.type === "armor") {
