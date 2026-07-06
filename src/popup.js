@@ -21,7 +21,7 @@ const sampleItem = {
   baseWeapon: "Longsword",
   rarity: "Very Rare",
   requiresAttunement: true,
-  attunementDescription: "by a creature proficient with longswords",
+  attunementDescription: "creature proficient with longswords",
   damage: {
     dice: "1d8",
     type: "Slashing"

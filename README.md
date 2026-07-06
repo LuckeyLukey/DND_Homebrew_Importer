@@ -92,7 +92,7 @@ dndbeyond-homebrew-importer/
   "baseWeapon": "<base weapon name>",
   "rarity": "<rarity>",
   "requiresAttunement": false,
-  "attunementDescription": "<who can attune and under which conditions>",
+  "attunementDescription": "<who can attune, without 'requires attunement by a'>",
   "damage": {
     "dice": "<damage dice>",
     "type": "<damage type>"
@@ -156,7 +156,7 @@ Field notes:
 - `baseWeapon`: Visible D&D Beyond base weapon option, for example `Longsword`, `Dagger`, or `Quarterstaff`.
 - `rarity`: Visible D&D Beyond rarity option, for example `Common`, `Uncommon`, `Rare`, `Very Rare`, `Legendary`, `Artifact`, `Varies`, or `Unknown Rarity`.
 - `requiresAttunement`: Boolean. Use `true` or `false`.
-- `attunementDescription`: Required by D&D Beyond when `requiresAttunement` is `true`. If omitted, the importer writes a generic local fallback so the required field is not left blank.
+- `attunementDescription`: Required by D&D Beyond when `requiresAttunement` is `true`. D&D Beyond already renders `requires attunement by a` before this field, so provide only the target phrase, for example `creature proficient with longswords` or `wizard`. If omitted, the importer writes a generic local fallback so the required field is not left blank.
 - `damage.dice` and `damage.type`: Best-effort. On magic-item forms, these are included in the generated description because D&D Beyond does not expose separate damage fields in the initial magic-item form.
 - `properties`: Array of weapon property names. On magic-item forms, these are included in the generated description.
 - `description`: Full item text. The importer writes this into the D&D Beyond TinyMCE description field.

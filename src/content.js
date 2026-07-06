@@ -757,9 +757,9 @@
   }
 
   async function fillAttunementDescription(report, item) {
-    const value = item.attunementDescription ||
+    const value = cleanAttunementDescription(item.attunementDescription ||
       item.attunement?.description ||
-      `Requires attunement by a creature that can wield ${item.name || "this item"}.`;
+      `creature that can wield ${item.name || "this item"}.`);
 
     await waitForSelector("#field-attunement-description, [name='attunement-description']", 1200);
 
@@ -770,6 +770,17 @@
     ], {
       selectors: ["#field-attunement-description", "[name='attunement-description']"]
     });
+  }
+
+  function cleanAttunementDescription(value) {
+    return String(value || "")
+      .trim()
+      .replace(/^requires\s+attunement\s+by\s+(a|an|the)\s+/i, "")
+      .replace(/^requires\s+attunement\s+by\s+/i, "")
+      .replace(/^requires\s+attunement\s*/i, "")
+      .replace(/^by\s+(a|an|the)\s+/i, "")
+      .replace(/^(a|an|the)\s+/i, "")
+      .trim();
   }
 
   async function fillTextField(report, label, value, terms, options = {}) {
