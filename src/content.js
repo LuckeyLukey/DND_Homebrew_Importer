@@ -37,12 +37,13 @@
     const pagePhase = detectPagePhase();
     const magicItemForm = isMagicItemForm();
 
-    report.info(`Starting local import for "${item.name || "unnamed item"}".`);
+    report.info(`Starting local import for "${item.name || "unnamed entry"}".`);
     report.info(`Detected D&D Beyond phase: ${pagePhase}.`);
     await waitForPageToSettle();
 
     if (isModifierPage()) {
-      await fillModifierPage(report, item.modifiers?.[0]);
+      const modifiers = isSpellModifierPage() ? getSpellModifiers(item) : item.modifiers;
+      await fillModifierPage(report, modifiers?.[0]);
       report.info("Modifier import abgeschlossen. Bitte kontrollieren und manuell speichern.");
       report.finalMessage = "Modifier import abgeschlossen. Bitte kontrollieren und manuell speichern.";
       report.summary = summarize(report.entries);
@@ -50,19 +51,32 @@
     }
 
     if (isConditionPage()) {
-      await fillConditionPage(report, item.conditions?.[0]);
+      const conditions = isSpellConditionPage() ? getSpellConditions(item) : item.conditions;
+      await fillConditionPage(report, conditions?.[0]);
       report.info("Condition import abgeschlossen. Bitte kontrollieren und manuell speichern.");
       report.finalMessage = "Condition import abgeschlossen. Bitte kontrollieren und manuell speichern.";
       report.summary = summarize(report.entries);
       return report;
     }
 
-    if (isSpellPage()) {
+    if (isSpellHigherLevelPage()) {
+      await fillHigherLevelPage(report, getSpellHigherLevels(item)?.[0]);
+      report.info("Higher-level import abgeschlossen. Bitte kontrollieren und manuell speichern.");
+      report.finalMessage = "Higher-level import abgeschlossen. Bitte kontrollieren und manuell speichern.";
+      report.summary = summarize(report.entries);
+      return report;
+    }
+
+    if (isMagicItemAttachedSpellPage()) {
       await fillSpellPage(report, item.spells?.[0]);
       report.info("Spell import abgeschlossen. Bitte kontrollieren und manuell speichern.");
       report.finalMessage = "Spell import abgeschlossen. Bitte kontrollieren und manuell speichern.";
       report.summary = summarize(report.entries);
       return report;
+    }
+
+    if (isHomebrewSpellForm() || normalize(item.type) === "spell") {
+      return importSpell(report, item, options, pagePhase);
     }
 
     await fillTextField(report, "Name", item.name, ["name", "item name"], {
@@ -195,7 +209,7 @@
       if (started) {
         report.finalMessage = options.autoSaveSubpages
           ? "Unterseiten-Workflow gestartet. Modifier, Conditions und Spells werden automatisch erstellt und gespeichert."
-          : "Unterseiten-Workflow gestartet. Die erste Unterseite wird geöffnet und ausgefüllt; bitte dort manuell speichern.";
+          : "Unterseiten-Workflow gestartet. Die erste Unterseite wird geoeffnet und ausgefuellt; bitte dort manuell speichern.";
         report.summary = summarize(report.entries);
         return report;
       }
@@ -207,6 +221,146 @@
     return report;
   }
 
+  async function importSpell(report, item, options, pagePhase) {
+    report.info("Detected D&D Beyond form type: spell.");
+
+    await fillTextField(report, "Spell Name", item.name, ["spell name", "name"], {
+      selectors: ["#field-Name", "#field-name"]
+    });
+    await fillTextField(report, "Version", item.version, ["version"], {
+      selectors: ["#field-version"],
+      warnOnMissing: false
+    });
+    await fillSelectLike(report, "Spell Level", item.spellLevel ?? item.level, ["spell level", "level"], {
+      selectors: ["#field-spell-level"]
+    });
+    await fillSelectLike(report, "Spell School", item.school || item.spellSchool, ["spell school", "school"], {
+      selectors: ["#field-spell-school"]
+    });
+
+    const castingTime = getSpellCastingTime(item);
+    await fillTextField(report, "Casting Time", castingTime.amount, ["casting time"], {
+      selectors: ["#field-spell-casting-time"]
+    });
+    await fillSelectLike(report, "Casting Time Type", castingTime.unit, ["casting time", "activation"], {
+      selectors: ["#field-spell-activation"]
+    });
+    await fillTextField(report, "Reaction Casting Time Description", castingTime.reactionDescription, [
+      "reaction casting time description",
+      "reaction condition"
+    ], {
+      selectors: ["#field-spell-casting-time-description"],
+      warnOnMissing: false
+    });
+
+    await fillSpellComponents(report, item);
+    await fillTextField(report, "Material Components Description", item.materialDescription || item.materialComponentsDescription || item.materialComponents, [
+      "material components description",
+      "material components"
+    ], {
+      selectors: ["#field-spell-components"],
+      warnOnMissing: false
+    });
+
+    const range = getSpellRange(item);
+    await fillSelectLike(report, "Spell Range Type", range.type, ["spell range type", "range type"], {
+      selectors: ["#field-origin"]
+    });
+    await fillTextField(report, "Range Distance", range.distance, ["range distance", "distance"], {
+      selectors: ["#field-spell-range"],
+      warnOnMissing: false
+    });
+
+    const duration = getSpellDuration(item);
+    await fillSelectLike(report, "Duration Type", duration.type, ["duration type"], {
+      selectors: ["#field-spell-duration"]
+    });
+    await fillTextField(report, "Duration", duration.amount, ["duration"], {
+      selectors: ["#field-spell-duration-interval"],
+      warnOnMissing: false
+    });
+    await fillSelectLike(report, "Duration Unit", duration.unit, ["duration unit"], {
+      selectors: ["#field-spell-duration-unit"],
+      warnOnMissing: false
+    });
+
+    await fillSpellDescription(report, item);
+
+    if (typeof item.ritual === "boolean" || typeof item.canCastAsRitual === "boolean") {
+      await fillCheckbox(report, "Ritual Spell", Boolean(item.ritual ?? item.canCastAsRitual), [
+        "ritual spell",
+        "ritual"
+      ], {
+        selectors: ["#field-can-cast-as-ritual"],
+        warnOnMissing: false
+      });
+    }
+
+    const higherLevels = getSpellHigherLevels(item);
+    if (typeof item.atHigherLevelsScaling === "boolean" || typeof item.higherLevelsScaling === "boolean" || higherLevels.length) {
+      await fillCheckbox(report, "At Higher Levels Scaling", Boolean(item.atHigherLevelsScaling ?? item.higherLevelsScaling ?? higherLevels.length), [
+        "at higher levels scaling",
+        "higher levels"
+      ], {
+        selectors: ["#field-can-cast-at-higher-level"],
+        warnOnMissing: false
+      });
+    }
+    await fillSelectLike(report, "Higher Level Scaling Type", item.higherLevelScale || item.higherLevelScalingType, [
+      "higher level scaling type",
+      "higher level scale"
+    ], {
+      selectors: ["#field-higher-level-scale"],
+      warnOnMissing: false
+    });
+
+    await fillMultiSelectLike(report, "Available Classes", item.classes || item.availableClasses || [], [
+      "available for classes",
+      "available classes",
+      "class mapping"
+    ], {
+      selectors: ["#field-class-mapping"]
+    });
+
+    if (pagePhase !== "create") {
+      await fillSpellAdditionalFields(report, item);
+    } else {
+      report.info("Initial spell creation form detected. D&D Beyond unlocks Modifiers, Conditions, and Higher Level entries after the spell is saved.");
+      report.info("Please review the spell fields, save manually, open the edit page, then run this import again for the second pass.");
+      report.finalMessage = "Initiale Spell-Maske gefuellt. Bitte kontrollieren, manuell speichern und danach auf der Edit-Seite erneut importieren.";
+      report.summary = summarize(report.entries);
+      return report;
+    }
+
+    const spellModifiers = getSpellModifiers(item);
+    const spellConditions = getSpellConditions(item);
+    if (spellModifiers.length && !options.autoNavigateSubpages) {
+      await reportSeparateCreatePage(report, "Spell modifiers", "modifier", findSpellModifierCreateUrl(), spellModifiers.map(formatModifierSummary));
+    }
+    if (spellConditions.length && !options.autoNavigateSubpages) {
+      await reportSeparateCreatePage(report, "Spell conditions", "condition", findSpellConditionCreateUrl(), spellConditions.map(formatConditionSummary));
+    }
+    if (higherLevels.length && !options.autoNavigateSubpages) {
+      await reportSeparateCreatePage(report, "Higher-level entries", "higher level", findSpellHigherLevelCreateUrl(), higherLevels.map(formatHigherLevelSummary));
+    }
+
+    if (options.autoNavigateSubpages) {
+      const started = await startSubpageWorkflow(report, item, options);
+      if (started) {
+        report.finalMessage = options.autoSaveSubpages
+          ? "Spell-Unterseiten-Workflow gestartet. Modifier, Conditions und Higher-Level-Eintraege werden automatisch erstellt und gespeichert."
+          : "Spell-Unterseiten-Workflow gestartet. Die erste Unterseite wird geoeffnet und ausgefuellt; bitte dort manuell speichern.";
+        report.summary = summarize(report.entries);
+        return report;
+      }
+    }
+
+    report.info("Spell import abgeschlossen. Bitte kontrollieren und manuell speichern.");
+    report.finalMessage = "Spell import abgeschlossen. Bitte kontrollieren und manuell speichern.";
+    report.summary = summarize(report.entries);
+    return report;
+  }
+
   async function resumeStoredWorkflow() {
     await waitForPageToSettle();
     const state = await getStoredWorkflow();
@@ -214,12 +368,12 @@
 
     const report = createReport();
 
-    if (isModifierPage() || isConditionPage() || isSpellPage()) {
+    if (isModifierPage() || isConditionPage() || isMagicItemAttachedSpellPage() || isSpellHigherLevelPage()) {
       await runWorkflowSubpage(report, state);
       return;
     }
 
-    if (isMagicItemEditPage()) {
+    if (isWorkflowReturnPage(state)) {
       await continueWorkflowFromEditPage(report, state);
     }
   }
@@ -227,7 +381,7 @@
   async function startSubpageWorkflow(report, item, options) {
     const queue = buildSubpageQueue(item, report);
     if (!queue.length) {
-      report.info("Automatic subpage workflow: no new modifier, condition, or spell entries found.");
+      report.info("Automatic subpage workflow: no new modifier, condition, spell, or higher-level entries found.");
       return false;
     }
 
@@ -244,6 +398,7 @@
         autoNavigateSubpages: Boolean(options.autoNavigateSubpages),
         autoSaveSubpages: Boolean(options.autoSaveSubpages)
       },
+      workflowType: getWorkflowType(item),
       returnUrl: window.location.href,
       queue,
       activeEntry: null,
@@ -257,6 +412,14 @@
   }
 
   function buildSubpageQueue(item, report) {
+    if (getWorkflowType(item) === "spell") {
+      return [
+        ...buildEntries("modifier", getSpellModifiers(item), findSpellModifierCreateUrl(), collectExistingEntryRows("modifier"), report),
+        ...buildEntries("condition", getSpellConditions(item), findSpellConditionCreateUrl(), collectExistingEntryRows("condition"), report),
+        ...buildEntries("higherLevel", getSpellHigherLevels(item), findSpellHigherLevelCreateUrl(), collectExistingEntryRows("higherLevel"), report)
+      ];
+    }
+
     return [
       ...buildEntries("modifier", item.modifiers, findModifierCreateUrl(), collectExistingEntryRows("modifier"), report),
       ...buildEntries("condition", item.conditions, findConditionCreateUrl(), collectExistingEntryRows("condition"), report),
@@ -282,7 +445,8 @@
     const headerTermsByKind = {
       modifier: ["modifier", "fixed value", "restriction"],
       condition: ["condition name", "condition duration"],
-      spell: ["spell name", "minimum charges", "save dc"]
+      spell: ["spell name", "minimum charges", "save dc"],
+      higherLevel: ["scale effect", "fixed value"]
     };
     const headerTerms = headerTermsByKind[kind] || [];
     const rows = [];
@@ -329,6 +493,7 @@
 
     if (kind === "condition") {
       return compactSignatureParts([
+        value.effect || value.conditionEffect,
         value.condition || value.name,
         [value.duration, value.durationUnit].filter((part) => part !== undefined && part !== "").join(" "),
         value.details || value.exception
@@ -342,6 +507,18 @@
         value.maxCharges,
         value.saveDc,
         value.details || value.restriction
+      ]);
+    }
+
+    if (kind === "higherLevel") {
+      return compactSignatureParts([
+        value.level || value.scalingLevel,
+        value.modifier,
+        value.effect || value.scaleEffect,
+        value.diceCount,
+        value.dieType || value.diceType,
+        value.fixedValue || value.value,
+        value.details
       ]);
     }
 
@@ -394,6 +571,7 @@
     if (kind === "modifier") return findModifierCreateUrl();
     if (kind === "condition") return findConditionCreateUrl();
     if (kind === "spell") return findSpellCreateUrl();
+    if (kind === "higherLevel") return findSpellHigherLevelCreateUrl();
     return "";
   }
 
@@ -403,11 +581,12 @@
 
     const expectedPage = (entry.kind === "modifier" && isModifierPage()) ||
       (entry.kind === "condition" && isConditionPage()) ||
-      (entry.kind === "spell" && isSpellPage());
+      (entry.kind === "spell" && isMagicItemAttachedSpellPage()) ||
+      (entry.kind === "higherLevel" && isSpellHigherLevelPage());
     if (!expectedPage) return;
 
     report.info(`Automatic subpage workflow: filling ${entry.kind} ${entry.index + 1}.`);
-    const filled = await fillWorkflowEntry(report, state.item, entry);
+    const filled = await fillWorkflowEntry(report, state.item, entry, state);
     if (!filled) {
       report.warn(`Automatic subpage workflow: ${entry.kind} ${entry.index + 1} was not filled.`);
       await clearWorkflow();
@@ -433,15 +612,20 @@
     }
   }
 
-  async function fillWorkflowEntry(report, item, entry) {
+  async function fillWorkflowEntry(report, item, entry, state) {
     if (entry.kind === "modifier") {
-      return fillModifierPage(report, item.modifiers?.[entry.index]);
+      const modifiers = state.workflowType === "spell" ? getSpellModifiers(item) : item.modifiers;
+      return fillModifierPage(report, modifiers?.[entry.index]);
     }
     if (entry.kind === "condition") {
-      return fillConditionPage(report, item.conditions?.[entry.index]);
+      const conditions = state.workflowType === "spell" ? getSpellConditions(item) : item.conditions;
+      return fillConditionPage(report, conditions?.[entry.index]);
     }
     if (entry.kind === "spell") {
       return fillSpellPage(report, item.spells?.[entry.index]);
+    }
+    if (entry.kind === "higherLevel") {
+      return fillHigherLevelPage(report, getSpellHigherLevels(item)?.[entry.index]);
     }
     return false;
   }
@@ -459,7 +643,7 @@
   }
 
   function isMagicItemEditPage() {
-    return detectPagePhase() === "edit" && !isModifierPage() && !isConditionPage() && !isSpellPage();
+    return detectPagePhase() === "edit" && !isModifierPage() && !isConditionPage() && !isMagicItemAttachedSpellPage() && !isSpellHigherLevelPage() && !isHomebrewSpellForm();
   }
 
   function getStoredWorkflow() {
@@ -494,6 +678,17 @@
     );
   }
 
+  function isHomebrewSpellForm() {
+    return Boolean(
+      document.querySelector("#spell-form, #field-spell-level, #field-spell-description-wysiwyg")
+    ) && !isSpellSubpage();
+  }
+
+  function isWorkflowReturnPage(state) {
+    if (state?.workflowType === "spell") return isHomebrewSpellForm() && detectPagePhase() === "edit";
+    return isMagicItemEditPage();
+  }
+
   function getBaseItemTypeLabel(type) {
     const normalizedType = normalize(type);
     if (normalizedType === "weapon") return "Weapon";
@@ -510,8 +705,191 @@
     return window.location.pathname.toLowerCase().includes("/condition/");
   }
 
-  function isSpellPage() {
-    return window.location.pathname.toLowerCase().includes("/spell/");
+  function isMagicItemAttachedSpellPage() {
+    return window.location.pathname.toLowerCase().includes("/magic-items/spell/");
+  }
+
+  function isSpellModifierPage() {
+    return window.location.pathname.toLowerCase().includes("/spells/modifier/");
+  }
+
+  function isSpellConditionPage() {
+    return window.location.pathname.toLowerCase().includes("/spells/condition/");
+  }
+
+  function isSpellHigherLevelPage() {
+    return window.location.pathname.toLowerCase().includes("/spells/additional/");
+  }
+
+  function isSpellSubpage() {
+    return isSpellModifierPage() || isSpellConditionPage() || isSpellHigherLevelPage();
+  }
+
+  function getWorkflowType(item) {
+    return normalize(item?.type) === "spell" || isHomebrewSpellForm() || isSpellSubpage() ? "spell" : "magic-item";
+  }
+
+  function getSpellModifiers(item) {
+    return Array.isArray(item.spellModifiers) ? item.spellModifiers : Array.isArray(item.modifiers) ? item.modifiers : [];
+  }
+
+  function getSpellConditions(item) {
+    return Array.isArray(item.spellConditions) ? item.spellConditions : Array.isArray(item.conditions) ? item.conditions : [];
+  }
+
+  function getSpellHigherLevels(item) {
+    if (Array.isArray(item.higherLevels)) return item.higherLevels;
+    if (Array.isArray(item.higherLevelScaling)) return item.higherLevelScaling;
+    return [];
+  }
+
+  function getSpellCastingTime(item) {
+    const value = item.castingTime || {};
+    if (typeof value === "string") {
+      const match = value.match(/^(\d+)\s+(.+)$/);
+      return {
+        amount: match?.[1] || "",
+        unit: match?.[2] || value,
+        reactionDescription: item.reactionDescription || item.reactionCastingTimeDescription || ""
+      };
+    }
+
+    return {
+      amount: value.amount ?? value.number ?? item.castingTimeAmount ?? item.castingTimeNumber ?? "",
+      unit: value.unit || value.type || item.castingTimeType || item.activation || "",
+      reactionDescription: value.reactionDescription || item.reactionDescription || item.reactionCastingTimeDescription || ""
+    };
+  }
+
+  function getSpellRange(item) {
+    const value = item.range || {};
+    if (typeof value === "string") return { type: value, distance: item.rangeDistance || "" };
+    return {
+      type: value.type || item.rangeType || item.spellRangeType || "",
+      distance: value.distance ?? item.rangeDistance ?? item.spellRange ?? ""
+    };
+  }
+
+  function getSpellDuration(item) {
+    const value = item.duration || {};
+    if (typeof value === "string") return { type: value, amount: item.durationAmount || "", unit: item.durationUnit || "" };
+    return {
+      type: value.type || item.durationType || "",
+      amount: value.amount ?? value.interval ?? item.durationAmount ?? item.durationInterval ?? "",
+      unit: value.unit || item.durationUnit || ""
+    };
+  }
+
+  async function fillSpellComponents(report, item) {
+    const components = item.components || {};
+    const list = Array.isArray(components)
+      ? components.map((component) => normalize(component))
+      : Object.entries(components).filter(([, enabled]) => Boolean(enabled)).map(([component]) => normalize(component));
+
+    const has = (shortName, longName) => list.includes(normalize(shortName)) || list.includes(normalize(longName));
+    const explicit = list.length > 0;
+    if (!explicit) {
+      report.info("Components: skipped empty value.");
+      return false;
+    }
+
+    let filled = false;
+    filled = await fillCheckbox(report, "Component: Verbal", has("v", "verbal"), ["verbal"], {
+      selectors: ["#field-verbal-field"],
+      warnOnMissing: false
+    }) || filled;
+    filled = await fillCheckbox(report, "Component: Somatic", has("s", "somatic"), ["somatic"], {
+      selectors: ["#field-somatic-field"],
+      warnOnMissing: false
+    }) || filled;
+    filled = await fillCheckbox(report, "Component: Material", has("m", "material"), ["material"], {
+      selectors: ["#field-material-field"],
+      warnOnMissing: false
+    }) || filled;
+    return filled;
+  }
+
+  async function fillSpellDescription(report, item) {
+    const html = paragraphsToHtml(item.description || item.spellDescription || "");
+    if (!html) {
+      report.info("Description: skipped empty value.");
+      return false;
+    }
+
+    const tinyFilled = await setTinyMceContent("field-spell-description-wysiwyg", html);
+    const wysiwyg = document.querySelector("#field-spell-description-wysiwyg");
+    const markup = document.querySelector("#field-spell-description");
+
+    let filled = false;
+    for (const control of [wysiwyg, markup]) {
+      if (!control) continue;
+      setTextLikeValue(control, html);
+      fireInputEvents(control);
+      filled = true;
+    }
+
+    if (tinyFilled || filled) {
+      report.info("Description: filled D&D Beyond spell TinyMCE/markup fields.");
+      return true;
+    }
+
+    return fillTextField(report, "Description", htmlToPlainText(html), ["description"]);
+  }
+
+  async function fillSpellAdditionalFields(report, item) {
+    const area = item.areaOfEffect || {};
+    await fillSelectLike(report, "Area of Effect Type", area.type || item.areaOfEffectType, ["area of effect type"], {
+      selectors: ["#field-spell-aoe"],
+      warnOnMissing: false
+    });
+    await fillTextField(report, "Area of Effect Size", area.size ?? item.areaOfEffectSize, ["area of effect size"], {
+      selectors: ["#field-spell-aoe-size"],
+      warnOnMissing: false
+    });
+    await fillCheckbox(report, "Area of Effect Special Flag", Boolean(area.special ?? item.areaOfEffectSpecial), [
+      "area of effect special flag"
+    ], {
+      selectors: ["#field-aoe-special"],
+      warnOnMissing: false
+    });
+    await fillTextField(report, "Area of Effect Special Description", area.description || item.areaOfEffectSpecialDescription, [
+      "area of effect special"
+    ], {
+      selectors: ["#field-aoe-special-description"],
+      warnOnMissing: false
+    });
+
+    await fillCheckbox(report, "As Part of Weapon Attack", Boolean(item.asPartOfWeaponAttack), ["as part of weapon attack"], {
+      selectors: ["#field-as-part-of-weapon-attack"],
+      warnOnMissing: false
+    });
+    await fillSelectLike(report, "Attack Type", item.attackType, ["attack type"], {
+      selectors: ["#field-attack-type"],
+      warnOnMissing: false
+    });
+    await fillSelectLike(report, "Save Type", item.saveType, ["save type"], {
+      selectors: ["#field-save-type", "#field-spell-save-type"],
+      warnOnMissing: false
+    });
+    await fillTextField(report, "Effect On Miss", item.effectOnMiss, ["effect on miss"], {
+      selectors: ["#field-on-miss"],
+      warnOnMissing: false
+    });
+    await fillTextField(report, "Effect On Save Success", item.effectOnSaveSuccess, ["effect on save success"], {
+      selectors: ["#field-spell-save-success"],
+      warnOnMissing: false
+    });
+    await fillTextField(report, "Effect On Save Fail", item.effectOnSaveFail, ["effect on save fail"], {
+      selectors: ["#field-spell-save-fail"],
+      warnOnMissing: false
+    });
+    await fillMultiSelectLike(report, "Spell Effect Tags", item.tags || item.spellEffectTags || [], [
+      "spell effect tags",
+      "tags"
+    ], {
+      selectors: ["#field-tags", "#field-spell-tags"],
+      warnOnMissing: false
+    });
   }
 
   async function fillActions(report, actions) {
@@ -663,7 +1041,16 @@
       filled = await fillTextField(report, "Modifier Duration Interval", String(modifier.durationInterval), [
         "duration interval"
       ], {
-        selectors: ["#field-duration-interval"],
+        selectors: ["#field-duration-interval", "#field-duration"],
+        warnOnMissing: false
+      }) || filled;
+    }
+
+    if (modifier.duration !== undefined) {
+      filled = await fillTextField(report, "Modifier Duration", String(modifier.duration), [
+        "duration"
+      ], {
+        selectors: ["#field-duration", "#field-duration-interval"],
         warnOnMissing: false
       }) || filled;
     }
@@ -686,6 +1073,16 @@
       }) || filled;
     }
 
+    if (typeof modifier.usePrimaryStat === "boolean" || typeof modifier.primaryStat === "boolean") {
+      filled = await fillCheckbox(report, "Modifier Use Primary Stat", Boolean(modifier.usePrimaryStat ?? modifier.primaryStat), [
+        "use primary stat",
+        "primary stat"
+      ], {
+        selectors: ["#field-primary-stat"],
+        warnOnMissing: false
+      }) || filled;
+    }
+
     if (!filled) {
       report.warn("Modifier create form fields were not found. Please provide the saved HTML for the modifier page so selectors can be mapped exactly.");
     }
@@ -700,10 +1097,26 @@
     }
 
     let filled = false;
+    if (typeof condition.hide === "boolean") {
+      filled = await fillCheckbox(report, "Condition Hide", condition.hide, ["hide"], {
+        selectors: ["#field-hide"],
+        warnOnMissing: false
+      }) || filled;
+    }
+
+    if (condition.effect || condition.conditionEffect) {
+      filled = await fillRadioLike(report, "Condition Effect", condition.effect || condition.conditionEffect, [
+        "condition effect"
+      ], {
+        selectors: ["input[name='condition-effect']"],
+        warnOnMissing: false
+      }) || filled;
+    }
+
     filled = await fillSelectLike(report, "Condition", condition.condition || condition.name, [
       "condition"
     ], {
-      selectors: ["#field-item-condition"]
+      selectors: ["#field-item-condition", "#field-condition"]
     }) || filled;
 
     if (condition.duration !== undefined) {
@@ -801,6 +1214,75 @@
     return filled;
   }
 
+  async function fillHigherLevelPage(report, higherLevel) {
+    if (!higherLevel) {
+      report.warn("No higher-level object found in JSON. Add a higherLevels array with at least one entry.");
+      return false;
+    }
+
+    let filled = false;
+    if (higherLevel.level !== undefined || higherLevel.scalingLevel !== undefined) {
+      filled = await fillTextField(report, "Scaling Level Value", String(higherLevel.level ?? higherLevel.scalingLevel), [
+        "scaling level value",
+        "level"
+      ], {
+        selectors: ["#field-level"]
+      }) || filled;
+    }
+
+    filled = await fillSelectLike(report, "Modifier to Scale", higherLevel.modifier || higherLevel.modifierToScale, [
+      "modifier to scale",
+      "modifier"
+    ], {
+      selectors: ["#field-modifier"],
+      warnOnMissing: false
+    }) || filled;
+
+    filled = await fillSelectLike(report, "Scale Effect", higherLevel.effect || higherLevel.scaleEffect, [
+      "scale effect",
+      "effect type"
+    ], {
+      selectors: ["#field-effect-type"]
+    }) || filled;
+
+    if (higherLevel.diceCount !== undefined) {
+      filled = await fillTextField(report, "Higher Level Dice Count", String(higherLevel.diceCount), [
+        "dice count"
+      ], {
+        selectors: ["#field-dice-count"],
+        warnOnMissing: false
+      }) || filled;
+    }
+
+    filled = await fillSelectLike(report, "Higher Level Die Type", higherLevel.dieType || higherLevel.diceType, [
+      "die type",
+      "dice type"
+    ], {
+      selectors: ["#field-dice-value"],
+      warnOnMissing: false
+    }) || filled;
+
+    if (higherLevel.fixedValue !== undefined || higherLevel.value !== undefined) {
+      filled = await fillTextField(report, "Higher Level Fixed Value", String(higherLevel.fixedValue ?? higherLevel.value), [
+        "fixed value"
+      ], {
+        selectors: ["#field-dice-fixed"],
+        warnOnMissing: false
+      }) || filled;
+    }
+
+    if (higherLevel.details) {
+      filled = await fillTextField(report, "Higher Level Details", higherLevel.details, [
+        "details"
+      ], {
+        selectors: ["#field-dice-details"],
+        warnOnMissing: false
+      }) || filled;
+    }
+
+    return filled;
+  }
+
   function findModifierCreateUrl() {
     const link = Array.from(document.querySelectorAll("a[href*='/modifier/create/']"))
       .find((candidate) => normalize(candidate.textContent).includes("add a modifier")) ||
@@ -819,6 +1301,27 @@
     const link = Array.from(document.querySelectorAll("a[href*='/spell/create/']"))
       .find((candidate) => normalize(candidate.textContent).includes("add a spell")) ||
       document.querySelector("a[href*='/spell/create/']");
+    return link?.href || "";
+  }
+
+  function findSpellModifierCreateUrl() {
+    const link = Array.from(document.querySelectorAll("a[href*='/spells/modifier/create/'], a[href*='/modifier/create/']"))
+      .find((candidate) => normalize(candidate.textContent).includes("add a modifier")) ||
+      document.querySelector("a[href*='/spells/modifier/create/'], a[href*='/modifier/create/']");
+    return link?.href || "";
+  }
+
+  function findSpellConditionCreateUrl() {
+    const link = Array.from(document.querySelectorAll("a[href*='/spells/condition/create/'], a[href*='/condition/create/']"))
+      .find((candidate) => normalize(candidate.textContent).includes("add a condition")) ||
+      document.querySelector("a[href*='/spells/condition/create/'], a[href*='/condition/create/']");
+    return link?.href || "";
+  }
+
+  function findSpellHigherLevelCreateUrl() {
+    const link = Array.from(document.querySelectorAll("a[href*='/spells/additional/create/']"))
+      .find((candidate) => normalize(candidate.textContent).includes("add a higher level") || normalize(candidate.textContent).includes("higher level")) ||
+      document.querySelector("a[href*='/spells/additional/create/']");
     return link?.href || "";
   }
 
@@ -961,6 +1464,34 @@
     return true;
   }
 
+  async function fillRadioLike(report, label, value, terms, options = {}) {
+    if (!value) {
+      report.info(`${label}: skipped empty value.`);
+      return false;
+    }
+
+    const radios = options.selectors?.length
+      ? options.selectors.flatMap((selector) => Array.from(document.querySelectorAll(selector)))
+      : Array.from(document.querySelectorAll("input[type='radio']"));
+    const wanted = normalize(value);
+    const radio = radios.find((candidate) => {
+      const id = candidate.getAttribute("id");
+      const labelText = id ? Array.from(document.querySelectorAll(`label[for="${cssEscape(id)}"], label#${cssEscape(id)}`)).map((node) => node.textContent).join(" ") : "";
+      return normalize([candidate.value, candidate.name, id, labelText].join(" ")).includes(wanted);
+    }) || rankCandidates(radios, terms.concat([value]))[0]?.element;
+
+    if (!radio) {
+      if (options.warnOnMissing !== false) report.warn(`${label}: radio option "${value}" not found.`);
+      return false;
+    }
+
+    radio.click();
+    radio.checked = true;
+    fireInputEvents(radio);
+    report.info(`${label}: selected "${value}".`);
+    return true;
+  }
+
   function setCheckboxChecked(checkbox, wanted) {
     const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "checked");
     if (descriptor?.set) {
@@ -975,6 +1506,8 @@
     if (id) {
       const fakeById = document.querySelector(`#fc-fake-${cssEscape(id.replace(/^field-/, ""))} .fc-fake-item`);
       if (fakeById) return fakeById;
+      const fakeByDataId = document.querySelector(`[data-fc-real-item-id="${cssEscape(id)}"]`);
+      if (fakeByDataId) return fakeByDataId;
     }
 
     const container = checkbox.closest(".ddb-homebrew-create-form-fields-item, .form-check, label, div");
@@ -1512,6 +2045,15 @@
     ].filter(Boolean).join(" - ");
   }
 
+  function formatModifierSummary(modifier) {
+    return [
+      [modifier.type, modifier.subType || modifier.subtype].filter(Boolean).join(" - "),
+      modifier.value !== undefined ? `Value: ${modifier.value}` : null,
+      modifier.diceCount && (modifier.dieType || modifier.diceType) ? `Dice: ${modifier.diceCount}${modifier.dieType || modifier.diceType}` : null,
+      modifier.details || modifier.restriction
+    ].filter(Boolean).join(" - ");
+  }
+
   function formatSpellSummary(spell) {
     return [
       spell.name || spell.spellName,
@@ -1520,6 +2062,16 @@
         : null,
       spell.saveDc !== undefined ? `Save DC: ${spell.saveDc}` : null,
       spell.castAtLevel ? `Cast Level: ${spell.castAtLevel}` : null
+    ].filter(Boolean).join(" - ");
+  }
+
+  function formatHigherLevelSummary(higherLevel) {
+    return [
+      higherLevel.level !== undefined || higherLevel.scalingLevel !== undefined ? `Level: ${higherLevel.level ?? higherLevel.scalingLevel}` : null,
+      higherLevel.effect || higherLevel.scaleEffect,
+      higherLevel.diceCount && (higherLevel.dieType || higherLevel.diceType) ? `Dice: ${higherLevel.diceCount}${higherLevel.dieType || higherLevel.diceType}` : null,
+      higherLevel.fixedValue !== undefined || higherLevel.value !== undefined ? `Value: ${higherLevel.fixedValue ?? higherLevel.value}` : null,
+      higherLevel.details
     ].filter(Boolean).join(" - ");
   }
 

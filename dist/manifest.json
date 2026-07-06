@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "D&D Beyond Homebrew Item Importer",
-  "version": "0.4.7",
-  "description": "Locally autofills D&D Beyond homebrew item forms from structured JSON. Never saves the main item automatically.",
+  "name": "D&D Beyond Homebrew Importer",
+  "version": "0.5.0",
+  "description": "Locally autofills D&D Beyond homebrew item and spell forms from structured JSON. Never saves the main entry automatically.",
   "permissions": [
     "activeTab",
     "scripting",
@@ -13,7 +13,7 @@
     "https://dndbeyond.com/*"
   ],
   "action": {
-    "default_title": "Import D&D Beyond Homebrew Item",
+    "default_title": "Import D&D Beyond Homebrew",
     "default_popup": "popup.html"
   },
   "content_scripts": [
@@ -28,7 +28,14 @@
         "https://www.dndbeyond.com/magic-items/condition/edit/*",
         "https://www.dndbeyond.com/magic-items/spell/create/*",
         "https://www.dndbeyond.com/magic-items/spell/edit/*",
+        "https://www.dndbeyond.com/spells/modifier/create/*",
+        "https://www.dndbeyond.com/spells/modifier/edit/*",
+        "https://www.dndbeyond.com/spells/condition/create/*",
+        "https://www.dndbeyond.com/spells/condition/edit/*",
+        "https://www.dndbeyond.com/spells/additional/create/*",
+        "https://www.dndbeyond.com/spells/additional/edit/*",
         "https://www.dndbeyond.com/homebrew/items*",
+        "https://www.dndbeyond.com/homebrew/spells*",
         "https://www.dndbeyond.com/homebrew/magic-items*",
         "https://dndbeyond.com/homebrew/creations/create-*",
         "https://dndbeyond.com/homebrew/creations/edit-*",
@@ -39,7 +46,14 @@
         "https://dndbeyond.com/magic-items/condition/edit/*",
         "https://dndbeyond.com/magic-items/spell/create/*",
         "https://dndbeyond.com/magic-items/spell/edit/*",
+        "https://dndbeyond.com/spells/modifier/create/*",
+        "https://dndbeyond.com/spells/modifier/edit/*",
+        "https://dndbeyond.com/spells/condition/create/*",
+        "https://dndbeyond.com/spells/condition/edit/*",
+        "https://dndbeyond.com/spells/additional/create/*",
+        "https://dndbeyond.com/spells/additional/edit/*",
         "https://dndbeyond.com/homebrew/items*",
+        "https://dndbeyond.com/homebrew/spells*",
         "https://dndbeyond.com/homebrew/magic-items*"
       ],
       "js": [

@@ -1,0 +1,71 @@
+{
+  "type": "spell",
+  "name": "Solar Lance",
+  "version": "A",
+  "spellLevel": "3rd",
+  "school": "Evocation",
+  "castingTime": {
+    "amount": 1,
+    "unit": "Action"
+  },
+  "components": ["V", "S", "M"],
+  "materialDescription": "a polished brass needle worth at least 25 gp",
+  "range": {
+    "type": "Ranged",
+    "distance": 120
+  },
+  "duration": {
+    "type": "Instantaneous"
+  },
+  "description": "A lance of condensed sunlight streaks toward a creature you can see within range. Make a ranged spell attack. On a hit, the target takes radiant damage and sheds dim light until the start of your next turn.",
+  "ritual": false,
+  "atHigherLevelsScaling": true,
+  "higherLevelScale": "Spell Scale",
+  "classes": ["Cleric", "Paladin", "Sorcerer", "Wizard"],
+  "areaOfEffect": {
+    "type": "Line",
+    "size": 5
+  },
+  "attackType": "Ranged",
+  "saveType": "",
+  "effectOnMiss": "The lance misses and leaves a brief flare of harmless light.",
+  "effectOnSaveSuccess": "",
+  "effectOnSaveFail": "",
+  "spellEffectTags": ["Damage", "Radiant"],
+  "spellModifiers": [
+    {
+      "type": "Damage",
+      "subType": "Radiant",
+      "diceCount": 6,
+      "dieType": "d6",
+      "details": "Radiant damage dealt by Solar Lance."
+    },
+    {
+      "type": "Bonus",
+      "subType": "Spell Attacks",
+      "value": 1,
+      "duration": 1,
+      "durationUnit": "Round",
+      "details": "The target sheds dim light and is easier to track until the start of your next turn."
+    }
+  ],
+  "spellConditions": [
+    {
+      "effect": "Apply",
+      "condition": "Blinded",
+      "duration": 1,
+      "durationUnit": "Round",
+      "details": "On a critical hit, the target can be blinded until the end of its next turn, at the DM's discretion."
+    }
+  ],
+  "higherLevels": [
+    {
+      "level": 1,
+      "modifier": "Damage - Radiant",
+      "effect": "Additional Points",
+      "diceCount": 1,
+      "dieType": "d6",
+      "details": "The radiant damage increases by 1d6 for each spell slot level above 3rd."
+    }
+  ]
+}

@@ -1,8 +1,8 @@
-# D&D Beyond Homebrew Item Importer
+# D&D Beyond Homebrew Importer
 
-Local Chrome Manifest V3 extension for best-effort autofill of D&D Beyond homebrew item forms from structured JSON.
+Local Chrome Manifest V3 extension for best-effort autofill of D&D Beyond homebrew magic item and spell forms from structured JSON.
 
-It does not publish, share, scrape, read cookies, read passwords, or call paid APIs. By default it only fills forms on the D&D Beyond tab you already opened and does not save the main item. Optional subpage automation can open modifier, condition, and spell pages; subpage saving only happens when you explicitly enable it in the popup.
+It does not publish, share, scrape, read cookies, read passwords, or call paid APIs. By default it only fills forms on the D&D Beyond tab you already opened and does not save the main item or spell. Optional subpage automation can open modifier, condition, attached-spell, and higher-level pages; subpage saving only happens when you explicitly enable it in the popup.
 
 ## Install
 
@@ -18,9 +18,9 @@ Then in Chrome:
 3. Click **Load unpacked**.
 4. Select the `dist` folder created by `npm run build`.
 5. After local changes, click Chrome's reload icon for the extension and verify the version shown in the extension card or popup.
-6. Open a D&D Beyond homebrew item creation or edit page.
-7. Paste an item JSON into the extension popup, or choose a local `.json` file with the file picker.
-8. Click **Import Item**.
+6. Open a D&D Beyond homebrew magic item or spell creation/edit page.
+7. Paste a homebrew JSON into the extension popup, or choose a local `.json` file with the file picker.
+8. Click **Import Homebrew**.
 
 On the initial create page, D&D Beyond only exposes the first set of fields. The extension fills:
 
@@ -38,6 +38,19 @@ Then it stops and shows:
 Initiale Maske gefuellt. Bitte kontrollieren, manuell speichern und danach auf der Edit-Seite erneut importieren.
 ```
 
+For spell creation, the first pass fills the visible spell basics:
+
+- Spell Name
+- Version
+- Spell Level
+- Spell School
+- Casting Time and reaction description
+- Components and material description
+- Range and duration
+- Description
+- Ritual / higher-level scaling flags
+- Available classes
+
 After you manually save the item, D&D Beyond opens/unlocks the edit workflow with additional fields. Run the import again there to fill the second pass as far as the UI allows:
 
 - Notes
@@ -48,15 +61,17 @@ After you manually save the item, D&D Beyond opens/unlocks the edit workflow wit
 
 Modifiers, conditions, and attached spells are not inline fields on the magic-item edit page. D&D Beyond exposes them through **Add a Modifier**, **Add a Condition**, and **Add a Spell**, each opening a separate create page. In manual mode, the importer logs the matching URL when it finds one. Open that page and run the import again to best-effort fill the first object from the matching `modifiers`, `conditions`, or `spells` array. In automatic mode, the importer queues those subpages for you.
 
+Spell edit pages use a similar split workflow. The main spell page handles spell metadata and additional information; spell modifiers, spell conditions, and higher-level scaling entries are created through **Add a Modifier**, **Add a Condition**, and **Add a Higher Level** subpages. In automatic mode, these are queued from `spellModifiers`/`modifiers`, `spellConditions`/`conditions`, and `higherLevels`.
+
 The popup also has a local file picker and two optional workflow toggles:
 
 - **Choose File**: reads a local `.json` file in the browser, validates it, formats it into the textarea, and stores it locally for the next popup open. The file is not uploaded anywhere.
-- **Open modifier, condition, and spell pages automatically**: after the second-pass edit-page import, the extension stores a local workflow queue and opens the first matching D&D Beyond subpage.
+- **Open modifier, condition, spell, and higher-level pages automatically**: after the second-pass edit-page import, the extension stores a local workflow queue and opens the first matching D&D Beyond subpage.
 - **Auto-save subpage entries**: after a subpage is filled, the extension clicks that subpage's **Save** button, returns to the item edit page, and continues with the next queued entry.
 
 This automatic saving is intentionally limited to subpages. The main item edit page still requires manual review and manual saving.
 
-When the automatic subpage workflow is enabled, the importer does not log the manual "open Add a Spell/Condition/Modifier" warnings. It queues the entries instead. Before opening a new subpage, it reads the existing D&D Beyond tables and skips matching modifiers, conditions, or spells so repeated imports do not create duplicates.
+When the automatic subpage workflow is enabled, the importer does not log the manual "open Add a Spell/Condition/Modifier" warnings. It queues the entries instead. Before opening a new subpage, it reads the existing D&D Beyond tables and skips matching modifiers, conditions, attached spells, or higher-level entries so repeated imports do not create duplicates.
 
 On the edit page, the extension will finish with:
 
@@ -77,6 +92,7 @@ dndbeyond-homebrew-importer/
     stress-test-radiant-longsword.json
     stress-test-eclipse-plate.json
     stress-test-lantern-of-ember-stars.json
+    stress-test-solar-lance-spell.json
   scripts/
     build.mjs
     clean.mjs
@@ -157,13 +173,84 @@ dndbeyond-homebrew-importer/
       "castAtLevel": "<spell level>",
       "details": "<spell details>"
     }
+  ],
+  "spellLevel": "<spell level>",
+  "school": "<spell school>",
+  "castingTime": {
+    "amount": 1,
+    "unit": "<action, bonus action, reaction, etc.>",
+    "reactionDescription": "<reaction trigger text>"
+  },
+  "components": ["V", "S", "M"],
+  "materialDescription": "<material component text>",
+  "range": {
+    "type": "<self, touch, ranged, etc.>",
+    "distance": 60
+  },
+  "duration": {
+    "type": "<instantaneous, concentration, time, etc.>",
+    "amount": 1,
+    "unit": "<round, minute, hour, etc.>"
+  },
+  "ritual": false,
+  "atHigherLevelsScaling": false,
+  "higherLevelScale": "<character level, spell scale, or spell level>",
+  "classes": [
+    "<class name>"
+  ],
+  "areaOfEffect": {
+    "type": "<area type>",
+    "size": 15,
+    "special": false,
+    "description": "<special area text>"
+  },
+  "attackType": "<attack type>",
+  "saveType": "<save ability>",
+  "effectOnMiss": "<miss text>",
+  "effectOnSaveSuccess": "<save success text>",
+  "effectOnSaveFail": "<save fail text>",
+  "spellEffectTags": [
+    "<spell tag>"
+  ],
+  "spellModifiers": [
+    {
+      "type": "<modifier type>",
+      "subType": "<modifier subtype>",
+      "diceCount": 1,
+      "dieType": "<die type>",
+      "value": 1,
+      "duration": 1,
+      "durationUnit": "<duration unit>",
+      "usePrimaryStat": false,
+      "details": "<modifier details>"
+    }
+  ],
+  "spellConditions": [
+    {
+      "effect": "<apply, remove, or suppress>",
+      "condition": "<condition name>",
+      "duration": 1,
+      "durationUnit": "<duration unit>",
+      "details": "<condition details>"
+    }
+  ],
+  "higherLevels": [
+    {
+      "level": 1,
+      "modifier": "<modifier to scale>",
+      "effect": "<scale effect>",
+      "diceCount": 1,
+      "dieType": "<die type>",
+      "fixedValue": 1,
+      "details": "<higher level details>"
+    }
   ]
 }
 ```
 
 Field notes:
 
-- `type`: Use `weapon`, `armor`, or `item`. The importer maps these to D&D Beyond's Base Item Type dropdown values `Weapon`, `Armor`, and `Item`.
+- `type`: Use `weapon`, `armor`, or `item` for magic items, or `spell` for homebrew spells. Magic-item values map to D&D Beyond's Base Item Type dropdown values `Weapon`, `Armor`, and `Item`.
 - `name`: Required. This is the item name.
 - `baseWeapon`: Visible D&D Beyond base weapon option, for example `Longsword`, `Dagger`, or `Quarterstaff`.
 - `baseArmor`: Visible D&D Beyond base armor option, for example `Leather`, `Chain Mail`, `Plate`, or `Shield`.
@@ -180,6 +267,11 @@ Field notes:
 - `modifiers`: Best-effort. In manual mode, the importer logs the `Add a Modifier` URL so you can open the subpage and run the import there. In automatic mode, it can open D&D Beyond's `Add a Modifier` page, fill one modifier at a time, optionally save it, and return to the edit page. Before opening a new subpage, it compares the JSON entry with the existing modifier table and skips entries that already exist.
 - `conditions`: Best-effort. The automatic subpage workflow can fill condition subpages and skips existing condition rows with the same condition, duration, and details.
 - `spells`: Best-effort. The automatic subpage workflow can fill attached spell subpages and skips existing spell rows with the same spell name, charges, save DC, and details.
+- `spellLevel`, `school`, `castingTime`, `components`, `range`, `duration`, `ritual`, `higherLevelScale`, and `classes`: Spell creation fields used when `type` is `spell`.
+- `areaOfEffect`, `attackType`, `saveType`, `effectOnMiss`, `effectOnSaveSuccess`, `effectOnSaveFail`, and `spellEffectTags`: Spell edit-page additional information fields. These are best-effort because D&D Beyond only exposes some of them after the spell is saved once.
+- `spellModifiers`: Spell modifier subpage entries. If omitted on a spell JSON, `modifiers` is used as a fallback.
+- `spellConditions`: Spell condition subpage entries. If omitted on a spell JSON, `conditions` is used as a fallback.
+- `higherLevels`: Spell higher-level scaling subpage entries.
 
 ## What It Tries To Fill
 
@@ -191,6 +283,13 @@ Required fields are attempted first:
 - Magic Item Type
 - Rarity
 - Description
+- Spell Name
+- Spell Level
+- Spell School
+- Casting Time
+- Spell Range
+- Spell Duration
+- Available Classes
 
 Best-effort fields:
 
@@ -205,6 +304,10 @@ Best-effort fields:
 - Modifiers on the separate modifier create/edit page
 - Conditions on the separate condition create/edit page
 - Attached spells on the separate spell create/edit page
+- Spell components and material text
+- Ritual and higher-level-scaling flags
+- Spell additional information such as area of effect, attack type, save type, save/miss effects, and spell tags
+- Spell higher-level entries on the separate higher-level create/edit page
 
 Every found or missing field is logged in the popup and in the page console with the prefix `[DDB Homebrew Importer]`.
 
@@ -212,7 +315,7 @@ Every found or missing field is logged in the popup and in the page console with
 
 D&D Beyond pages can be React-heavy and may use custom selects or dynamic modal controls. The content script uses layered matching:
 
-1. Prefer known D&D Beyond field IDs from the current form, such as `#field-name`, `#field-rarity`, `#field-item-base-type`, `#field-base-weapon`, `#field-requires-attunement`, `#field-attunement-description`, `#field-item-description-wysiwyg`, `#field-notes`, `#field-has-charges`, `#field-number-of-charges`, `#field-charge-reset-condition`, `#field-spell-modifier-type`, `#field-spell-modifier-sub-type`, `#field-fixed-value`, `#field-item-condition`, and `#field-item-spell`.
+1. Prefer known D&D Beyond field IDs from the current form, such as `#field-name`, `#field-Name`, `#field-rarity`, `#field-item-base-type`, `#field-base-weapon`, `#field-requires-attunement`, `#field-attunement-description`, `#field-item-description-wysiwyg`, `#field-spell-description-wysiwyg`, `#field-notes`, `#field-has-charges`, `#field-number-of-charges`, `#field-charge-reset-condition`, `#field-spell-level`, `#field-spell-school`, `#field-spell-modifier-type`, `#field-spell-modifier-sub-type`, `#field-fixed-value`, `#field-item-condition`, `#field-condition`, and `#field-item-spell`.
 2. Fill TinyMCE-backed description fields with CSP-safe DOM updates to the visible editor iframe and the hidden WYSIWYG/markup textareas.
 3. Find fallback controls by associated labels, wrapping labels, nearby container text, placeholder, name, id, aria-label, test id, and class.
 4. For select-like values, try native `<select>` first.
