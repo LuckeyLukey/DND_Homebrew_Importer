@@ -1,0 +1,32 @@
+{
+  "type": "weapon",
+  "name": "Erdtree Longsword",
+  "baseWeapon": "Longsword",
+  "rarity": "Rare",
+  "requiresAttunement": false,
+  "damage": {
+    "dice": "1d8",
+    "type": "Slashing"
+  },
+  "properties": [
+    "Versatile"
+  ],
+  "description": "A finely balanced longsword inspired by the golden knights of the Lands Between.",
+  "notes": "Elden Ring Homebrew Item.",
+  "actions": [
+    {
+      "name": "Golden Vow",
+      "activation": "Action",
+      "uses": 1,
+      "reset": "Long Rest",
+      "description": "For 1 minute, you and allies within 10 ft gain a +1 bonus to attack rolls and saving throws."
+    }
+  ],
+  "modifiers": [
+    {
+      "type": "Bonus",
+      "subType": "Melee Weapon Attacks",
+      "value": 1
+    }
+  ]
+}

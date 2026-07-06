@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>D&D Beyond Importer</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="header">
+        <h1>Homebrew Importer</h1>
+        <span id="version-badge" class="badge">v...</span>
+      </header>
+
+      <label class="label" for="item-json">Item JSON</label>
+      <textarea id="item-json" spellcheck="false" placeholder='{"type":"weapon","name":"Radiant Oath Longsword"}'></textarea>
+
+      <div class="actions">
+        <button id="import-button" class="primary" type="button">Import Item</button>
+        <button id="clear-button" type="button">Clear</button>
+      </div>
+
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+
+      <section class="log-panel" aria-label="Import log">
+        <div class="log-header">
+          <strong>Log</strong>
+          <button id="copy-log-button" type="button">Copy</button>
+        </div>
+        <pre id="log"></pre>
+      </section>
+    </main>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

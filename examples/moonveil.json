@@ -1,0 +1,32 @@
+{
+  "type": "weapon",
+  "name": "Moonveil",
+  "baseWeapon": "Longsword",
+  "rarity": "Very Rare",
+  "requiresAttunement": true,
+  "damage": {
+    "dice": "1d8",
+    "type": "Slashing"
+  },
+  "properties": [
+    "Versatile"
+  ],
+  "description": "A katana-like blade whose edge glimmers with pale sorcery.",
+  "notes": "Elden Ring inspired. Review balance before use.",
+  "actions": [
+    {
+      "name": "Transient Moonlight",
+      "activation": "Action",
+      "uses": 2,
+      "reset": "Long Rest",
+      "description": "Choose one creature you can see within 30 feet. It must succeed on a Dexterity saving throw or take force damage."
+    }
+  ],
+  "modifiers": [
+    {
+      "type": "Bonus",
+      "subType": "Melee Weapon Attacks",
+      "value": 1
+    }
+  ]
+}

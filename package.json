@@ -1,0 +1,19 @@
+{
+  "name": "dndbeyond-homebrew-importer",
+  "version": "0.3.5",
+  "private": true,
+  "description": "Local Chrome MV3 extension for best-effort D&D Beyond homebrew item autofill from JSON.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "clean": "node scripts/clean.mjs"
+  },
+  "keywords": [
+    "chrome-extension",
+    "dndbeyond",
+    "homebrew",
+    "autofill"
+  ],
+  "author": "",
+  "license": "MIT"
+}

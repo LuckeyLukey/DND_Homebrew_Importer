@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "D&D Beyond Homebrew Item Importer",
+  "version": "0.3.5",
+  "description": "Locally autofills D&D Beyond homebrew item forms from structured JSON. Never saves automatically.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.dndbeyond.com/*",
+    "https://dndbeyond.com/*"
+  ],
+  "action": {
+    "default_title": "Import D&D Beyond Homebrew Item",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.dndbeyond.com/homebrew/creations/create-*",
+        "https://www.dndbeyond.com/homebrew/creations/edit-*",
+        "https://www.dndbeyond.com/homebrew/creations/magic-items/*",
+        "https://www.dndbeyond.com/modifier/create/*",
+        "https://www.dndbeyond.com/modifier/edit/*",
+        "https://www.dndbeyond.com/magic-items/condition/create/*",
+        "https://www.dndbeyond.com/magic-items/condition/edit/*",
+        "https://www.dndbeyond.com/magic-items/spell/create/*",
+        "https://www.dndbeyond.com/magic-items/spell/edit/*",
+        "https://www.dndbeyond.com/homebrew/items*",
+        "https://www.dndbeyond.com/homebrew/magic-items*",
+        "https://dndbeyond.com/homebrew/creations/create-*",
+        "https://dndbeyond.com/homebrew/creations/edit-*",
+        "https://dndbeyond.com/homebrew/creations/magic-items/*",
+        "https://dndbeyond.com/modifier/create/*",
+        "https://dndbeyond.com/modifier/edit/*",
+        "https://dndbeyond.com/magic-items/condition/create/*",
+        "https://dndbeyond.com/magic-items/condition/edit/*",
+        "https://dndbeyond.com/magic-items/spell/create/*",
+        "https://dndbeyond.com/magic-items/spell/edit/*",
+        "https://dndbeyond.com/homebrew/items*",
+        "https://dndbeyond.com/homebrew/magic-items*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
