@@ -19,7 +19,8 @@ Then in Chrome:
 4. Select the `dist` folder created by `npm run build`.
 5. After local changes, click Chrome's reload icon for the extension and verify the version shown in the extension card or popup.
 6. Open a D&D Beyond homebrew item creation or edit page.
-7. Paste an item JSON into the extension popup and click **Import Item**.
+7. Paste an item JSON into the extension popup, or choose a local `.json` file with the file picker.
+8. Click **Import Item**.
 
 On the initial create page, D&D Beyond only exposes the first set of fields. The extension fills:
 
@@ -49,6 +50,7 @@ Modifiers, conditions, and attached spells are not inline fields on the magic-it
 
 The popup also has two optional workflow toggles:
 
+- **Choose File**: reads a local `.json` file in the browser, validates it, formats it into the textarea, and stores it locally for the next popup open. The file is not uploaded anywhere.
 - **Open modifier, condition, and spell pages automatically**: after the second-pass edit-page import, the extension stores a local workflow queue and opens the first matching D&D Beyond subpage.
 - **Auto-save subpage entries**: after a subpage is filled, the extension clicks that subpage's **Save** button, returns to the item edit page, and continues with the next queued entry.
 

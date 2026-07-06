@@ -49,6 +49,22 @@ h1 {
   font-weight: 650;
 }
 
+.file-row {
+  display: grid;
+  gap: 6px;
+}
+
+.file-input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid #c9ced6;
+  border-radius: 6px;
+  padding: 6px;
+  background: #ffffff;
+  color: #202124;
+  font-size: 12px;
+}
+
 textarea {
   min-height: 210px;
   width: 100%;

@@ -5,6 +5,7 @@ const copyLogButton = document.querySelector("#copy-log-button");
 const statusNode = document.querySelector("#status");
 const logNode = document.querySelector("#log");
 const versionBadge = document.querySelector("#version-badge");
+const jsonFileInput = document.querySelector("#json-file-input");
 const autoNavigateSubpages = document.querySelector("#auto-navigate-subpages");
 const autoSaveSubpages = document.querySelector("#auto-save-subpages");
 
@@ -95,11 +96,35 @@ textarea.addEventListener("input", () => {
   setStatus("", "");
 });
 
+jsonFileInput.addEventListener("change", async () => {
+  const [file] = Array.from(jsonFileInput.files || []);
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const parsed = parseItemJson(text);
+    if (!parsed.ok) {
+      setStatus(`File import failed: ${parsed.error}`, "error");
+      return;
+    }
+
+    textarea.value = JSON.stringify(parsed.value, null, 2);
+    chrome.storage?.local?.set?.({ [STORAGE_KEY]: textarea.value });
+    logNode.textContent = "";
+    setStatus(`Loaded ${file.name}.`, "success");
+  } catch (error) {
+    setStatus(`File import failed: ${error.message}`, "error");
+  } finally {
+    jsonFileInput.value = "";
+  }
+});
+
 autoNavigateSubpages.addEventListener("change", persistOptions);
 autoSaveSubpages.addEventListener("change", persistOptions);
 
 clearButton.addEventListener("click", () => {
   textarea.value = "";
+  jsonFileInput.value = "";
   logNode.textContent = "";
   chrome.storage?.local?.remove?.(STORAGE_KEY);
   setStatus("JSON cleared.", "");
