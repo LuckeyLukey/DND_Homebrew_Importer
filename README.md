@@ -93,6 +93,7 @@ dndbeyond-homebrew-importer/
     stress-test-eclipse-plate.json
     stress-test-lantern-of-ember-stars.json
     stress-test-solar-lance-spell.json
+    stress-test-astral-aegis-spell.json
   scripts/
     build.mjs
     clean.mjs

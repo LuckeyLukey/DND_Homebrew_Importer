@@ -1,0 +1,94 @@
+{
+  "type": "spell",
+  "name": "Astral Aegis",
+  "version": "A",
+  "spellLevel": "4th",
+  "school": "Abjuration",
+  "castingTime": {
+    "amount": 1,
+    "unit": "Reaction",
+    "reactionDescription": "When a creature you can see within range takes damage from an attack or spell."
+  },
+  "components": ["V", "S", "M"],
+  "materialDescription": "a shard of mirrored glass wrapped in silver wire worth at least 50 gp",
+  "range": {
+    "type": "Ranged",
+    "distance": 60
+  },
+  "duration": {
+    "type": "Concentration",
+    "amount": 1,
+    "unit": "Minute"
+  },
+  "description": "A translucent astral shield blooms around the triggering creature. Until the spell ends, the target gains resistance to force damage, and the first time each round it takes damage, that damage is reduced by 1d8. When a hostile creature hits the warded target with a melee attack, the attacker must succeed on a Wisdom saving throw or become frightened until the end of its next turn.",
+  "ritual": false,
+  "atHigherLevelsScaling": true,
+  "higherLevelScale": "Spell Scale",
+  "classes": ["Artificer", "Cleric", "Paladin", "Sorcerer", "Wizard"],
+  "areaOfEffect": {
+    "type": "Sphere",
+    "size": 10,
+    "special": true
+  },
+  "attackType": "",
+  "saveType": "Wisdom",
+  "effectOnMiss": "",
+  "effectOnSaveSuccess": "The attacker is not frightened.",
+  "effectOnSaveFail": "The attacker is frightened until the end of its next turn.",
+  "spellEffectTags": ["Buff", "Debuff", "Frightened", "Resistance", "Warding"],
+  "spellModifiers": [
+    {
+      "type": "Resistance",
+      "subType": "Force",
+      "details": "The warded target has resistance to force damage while Astral Aegis persists."
+    },
+    {
+      "type": "Bonus",
+      "subType": "Armor Class",
+      "value": 2,
+      "duration": 1,
+      "durationUnit": "Minute",
+      "details": "The warded target gains a +2 bonus to Armor Class while the aegis is active."
+    },
+    {
+      "type": "Damage Reduction",
+      "subType": "All Damage",
+      "diceCount": 1,
+      "dieType": "d8",
+      "details": "Once per round, reduce damage taken by the warded target by 1d8."
+    }
+  ],
+  "spellConditions": [
+    {
+      "effect": "Apply",
+      "condition": "Frightened",
+      "duration": 1,
+      "durationUnit": "Round",
+      "details": "A hostile creature that hits the warded target with a melee attack can be frightened on a failed Wisdom save."
+    },
+    {
+      "effect": "Suppress",
+      "condition": "Frightened",
+      "duration": 1,
+      "durationUnit": "Minute",
+      "details": "While the aegis holds, the warded target suppresses the frightened condition."
+    }
+  ],
+  "higherLevels": [
+    {
+      "level": 1,
+      "modifier": "Damage Reduction - All Damage",
+      "effect": "Additional Dice",
+      "diceCount": 1,
+      "dieType": "d8",
+      "details": "The damage reduction increases by 1d8 for each spell slot level above 4th."
+    },
+    {
+      "level": 2,
+      "modifier": "Bonus - Armor Class",
+      "effect": "Additional Points",
+      "fixedValue": 1,
+      "details": "When cast with a spell slot of 6th level or higher, the Armor Class bonus increases by 1."
+    }
+  ]
+}
