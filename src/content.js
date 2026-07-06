@@ -178,15 +178,15 @@
       await fillActions(report, actions);
     }
 
-    if (item.modifiers?.length) {
+    if (item.modifiers?.length && !options.autoNavigateSubpages) {
       await fillModifiers(report, item.modifiers);
     }
 
-    if (item.conditions?.length) {
+    if (item.conditions?.length && !options.autoNavigateSubpages) {
       await reportSeparateCreatePage(report, "Conditions", "condition", findConditionCreateUrl(), item.conditions.map(formatConditionSummary));
     }
 
-    if (item.spells?.length) {
+    if (item.spells?.length && !options.autoNavigateSubpages) {
       await reportSeparateCreatePage(report, "Spells", "spell", findSpellCreateUrl(), item.spells.map(formatSpellSummary));
     }
 
