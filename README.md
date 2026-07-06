@@ -175,9 +175,9 @@ Field notes:
 - `description`: Full item text. The importer writes this into the D&D Beyond TinyMCE description field.
 - `notes`: Edit-page field only. D&D Beyond unlocks it after the item is saved once.
 - `actions`: Optional array of generic action or feature blocks. Their text is included in the description; the first action with `uses` and `reset` is also mapped to charges on the edit page when those fields exist.
-- `modifiers`: Best-effort. On the magic-item edit page, D&D Beyond usually exposes only an `Add a Modifier` link. Open that modifier page and run the import again to fill the first modifier object. Known D&D Beyond fields include modifier type, subtype, ability score, dice count, die type, fixed value, additional bonus types, details, duration, and attunement.
-- `conditions`: Best-effort. Open D&D Beyond's `Add a Condition` page and run the import again to fill the first condition object.
-- `spells`: Best-effort. Open D&D Beyond's `Add a Spell` page and run the import again to fill the first spell object.
+- `modifiers`: Best-effort. The automatic subpage workflow can open D&D Beyond's `Add a Modifier` page, fill one modifier at a time, optionally save it, and return to the edit page. Before opening a new subpage, it compares the JSON entry with the existing modifier table and skips entries that already exist.
+- `conditions`: Best-effort. The automatic subpage workflow can fill condition subpages and skips existing condition rows with the same condition, duration, and details.
+- `spells`: Best-effort. The automatic subpage workflow can fill attached spell subpages and skips existing spell rows with the same spell name, charges, save DC, and details.
 
 ## What It Tries To Fill
 

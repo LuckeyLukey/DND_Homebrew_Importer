@@ -225,9 +225,9 @@
   }
 
   async function startSubpageWorkflow(report, item, options) {
-    const queue = buildSubpageQueue(item);
+    const queue = buildSubpageQueue(item, report);
     if (!queue.length) {
-      report.info("Automatic subpage workflow: no modifier, condition, or spell entries found.");
+      report.info("Automatic subpage workflow: no new modifier, condition, or spell entries found.");
       return false;
     }
 
@@ -256,17 +256,107 @@
     return true;
   }
 
-  function buildSubpageQueue(item) {
+  function buildSubpageQueue(item, report) {
     return [
-      ...buildEntries("modifier", item.modifiers, findModifierCreateUrl()),
-      ...buildEntries("condition", item.conditions, findConditionCreateUrl()),
-      ...buildEntries("spell", item.spells, findSpellCreateUrl())
+      ...buildEntries("modifier", item.modifiers, findModifierCreateUrl(), collectExistingEntryRows("modifier"), report),
+      ...buildEntries("condition", item.conditions, findConditionCreateUrl(), collectExistingEntryRows("condition"), report),
+      ...buildEntries("spell", item.spells, findSpellCreateUrl(), collectExistingEntryRows("spell"), report)
     ];
   }
 
-  function buildEntries(kind, values, url) {
+  function buildEntries(kind, values, url, existingRows, report) {
     if (!Array.isArray(values)) return [];
-    return values.map((_value, index) => ({ kind, index, url }));
+    return values.reduce((entries, value, index) => {
+      const signature = getEntrySignatureParts(kind, value);
+      if (matchesExistingEntry(existingRows, signature)) {
+        report?.info(`Automatic subpage workflow: ${capitalize(kind)} ${index + 1} already exists and was skipped.`);
+        return entries;
+      }
+
+      entries.push({ kind, index, url });
+      return entries;
+    }, []);
+  }
+
+  function collectExistingEntryRows(kind) {
+    const headerTermsByKind = {
+      modifier: ["modifier", "fixed value", "restriction"],
+      condition: ["condition name", "condition duration"],
+      spell: ["spell name", "minimum charges", "save dc"]
+    };
+    const headerTerms = headerTermsByKind[kind] || [];
+    const rows = [];
+
+    for (const table of Array.from(document.querySelectorAll("table"))) {
+      const headingText = normalize(
+        Array.from(table.querySelectorAll("thead th, tr:first-child th, tr:first-child td"))
+          .map((cell) => cell.textContent)
+          .join(" ")
+      );
+      if (!headerTerms.every((term) => headingText.includes(normalize(term)))) continue;
+
+      for (const row of Array.from(table.querySelectorAll("tbody tr, tr"))) {
+        const cells = Array.from(row.querySelectorAll("td"));
+        if (!cells.length) continue;
+
+        const text = normalize(cells.map((cell) => cell.textContent).join(" "))
+          .replace(/\b(edit|delete|actions?)\b/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+        if (text) rows.push(text);
+      }
+    }
+
+    return rows;
+  }
+
+  function getEntrySignatureParts(kind, value) {
+    if (!value || typeof value !== "object") return [];
+
+    if (kind === "modifier") {
+      return compactSignatureParts([
+        [value.type, value.subType || value.subtype].filter(Boolean).join(" "),
+        value.value,
+        value.fixedValue,
+        value.abilityScore || value.ability || value.rpgStat,
+        value.diceCount,
+        value.dieType || value.diceType,
+        value.details || value.restriction,
+        value.durationInterval,
+        value.durationUnit
+      ]);
+    }
+
+    if (kind === "condition") {
+      return compactSignatureParts([
+        value.condition || value.name,
+        [value.duration, value.durationUnit].filter((part) => part !== undefined && part !== "").join(" "),
+        value.details || value.exception
+      ]);
+    }
+
+    if (kind === "spell") {
+      return compactSignatureParts([
+        value.name || value.spellName,
+        value.minCharges,
+        value.maxCharges,
+        value.saveDc,
+        value.details || value.restriction
+      ]);
+    }
+
+    return [];
+  }
+
+  function compactSignatureParts(parts) {
+    return parts
+      .map((part) => normalize(part))
+      .filter((part) => part && part !== "false");
+  }
+
+  function matchesExistingEntry(existingRows, signatureParts) {
+    if (!existingRows.length || !signatureParts.length) return false;
+    return existingRows.some((rowText) => signatureParts.every((part) => rowText.includes(part)));
   }
 
   async function continueWorkflowFromEditPage(report, state) {
