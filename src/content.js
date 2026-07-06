@@ -998,48 +998,10 @@
   }
 
   function syncCheckboxInPageContext(checkbox, wanted) {
-    const selector = selectorForElement(checkbox);
-    if (!selector) return false;
-
-    const script = document.createElement("script");
-    script.textContent = `
-      (() => {
-        const selector = ${JSON.stringify(selector)};
-        const wanted = ${JSON.stringify(wanted)};
-        const checkbox = document.querySelector(selector);
-        if (!checkbox) return;
-        const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "checked");
-        if (descriptor && descriptor.set) {
-          descriptor.set.call(checkbox, wanted);
-        } else {
-          checkbox.checked = wanted;
-        }
-        checkbox.dispatchEvent(new Event("input", { bubbles: true }));
-        checkbox.dispatchEvent(new Event("change", { bubbles: true }));
-        checkbox.dispatchEvent(new Event("blur", { bubbles: true }));
-        const fake = document.querySelector("#fc-fake-" + checkbox.id.replace(/^field-/, "") + " .fc-fake-item");
-        if (fake) {
-          fake.setAttribute("aria-checked", wanted ? "true" : "false");
-          fake.dataset.checked = wanted ? "true" : "false";
-          ["checked", "selected", "active", "is-checked", "is-selected", "fc-fake-item-checked", "fc-fake-item-selected"].forEach((className) => {
-            fake.classList.toggle(className, wanted);
-          });
-        }
-        const jq = window.jQuery || window.$;
-        if (jq) {
-          jq(checkbox).prop("checked", wanted).trigger("input").trigger("change").trigger("blur");
-        }
-      })();
-    `;
-
-    try {
-      (document.head || document.documentElement).appendChild(script);
-      script.remove();
-      return true;
-    } catch (_error) {
-      script.remove();
-      return false;
-    }
+    setCheckboxChecked(checkbox, wanted);
+    syncFakeCheckbox(findFakeCheckboxFor(checkbox), wanted);
+    fireInputEvents(checkbox);
+    return true;
   }
 
   async function fillSelectLike(report, label, value, terms, options = {}) {
@@ -1162,54 +1124,27 @@
   }
 
   async function ensureModifierSubtypeOptionInPageContext(wanted, modifierTypeValue) {
-    const script = document.createElement("script");
-    script.textContent = `
-      (() => {
-        const wanted = ${JSON.stringify(wanted)};
-        const modifierTypeValue = ${JSON.stringify(modifierTypeValue || "")};
-        const normalize = (value) => String(value || "")
-          .toLowerCase()
-          .replace(/['"]/g, "")
-          .replace(/[^a-z0-9]+/g, " ")
-          .replace(/\\s+/g, " ")
-          .trim();
-        const data = (window.subTypeJSON || window.__ddbHomebrewSubtypeData || []).flat
-          ? (window.subTypeJSON || window.__ddbHomebrewSubtypeData || []).flat()
-          : [];
-        const fallback = [
-          { id: 45, name: "Melee Weapon Attacks", type: 1 },
-          { id: 1687, name: "Melee Weapon Attacks", type: 2 }
-        ];
-        const entries = data.concat(fallback).filter(Boolean);
-        const wantedText = normalize(wanted);
-        const sameType = entries.filter((entry) => !modifierTypeValue || String(entry.type) === String(modifierTypeValue));
-        const match = sameType.find((entry) => normalize(entry.name) === wantedText) ||
-          sameType.find((entry) => normalize(entry.name).includes(wantedText) || wantedText.includes(normalize(entry.name))) ||
-          entries.find((entry) => normalize(entry.name) === wantedText) ||
-          entries.find((entry) => normalize(entry.name).includes(wantedText) || wantedText.includes(normalize(entry.name)));
-        const select = document.querySelector("#field-spell-modifier-sub-type");
-        if (!select || !match) return;
-        let option = Array.from(select.options || []).find((candidate) => String(candidate.value) === String(match.id));
-        if (!option) {
-          option = new Option(match.name, String(match.id), false, false);
-          select.appendChild(option);
-        }
-      })();
-    `;
+    const select = document.querySelector("#field-spell-modifier-sub-type");
+    const match = findModifierSubtypeData(wanted, modifierTypeValue);
+    if (!select || !match) return false;
 
-    try {
-      (document.head || document.documentElement).appendChild(script);
-      script.remove();
-      return true;
-    } catch (_error) {
-      script.remove();
-      return false;
+    let option = Array.from(select.options || []).find((candidate) => String(candidate.value) === String(match.id));
+    if (!option) {
+      option = new Option(match.name, String(match.id), false, false);
+      select.appendChild(option);
     }
+
+    return true;
   }
 
   function forceDdbSelect2Value(selector, value, text) {
     const select = document.querySelector(selector);
     if (!select) return false;
+
+    select.value = String(value);
+    Array.from(select.options || []).forEach((option) => {
+      option.selected = String(option.value) === String(value);
+    });
 
     const container = document.querySelector(`#s2id_${cssEscape(select.id)}`);
     const chosen = container?.querySelector(".select2-chosen");
@@ -1217,42 +1152,8 @@
       chosen.textContent = text || "";
     }
 
-    const script = document.createElement("script");
-    script.textContent = `
-      (() => {
-        const selector = ${JSON.stringify(selector)};
-        const value = ${JSON.stringify(value)};
-        const text = ${JSON.stringify(text)};
-        const select = document.querySelector(selector);
-        if (!select) return;
-        select.value = String(value);
-        Array.from(select.options || []).forEach((option) => {
-          option.selected = String(option.value) === String(value);
-        });
-        const container = document.querySelector("#s2id_" + select.id);
-        const chosen = container && container.querySelector(".select2-chosen");
-        if (chosen) chosen.textContent = text || "";
-        const jq = window.jQuery || window.$;
-        if (jq) {
-          const wrapped = jq(select);
-          if (wrapped.select2) {
-            try { wrapped.select2("val", String(value)); } catch (_error) {}
-          }
-          wrapped.val(String(value));
-          wrapped.trigger("input");
-          wrapped.trigger("change");
-        }
-      })();
-    `;
-
-    try {
-      (document.head || document.documentElement).appendChild(script);
-      script.remove();
-      return true;
-    } catch (_error) {
-      script.remove();
-      return false;
-    }
+    fireInputEvents(select);
+    return true;
   }
 
   async function fillMultiSelectLike(report, label, values, terms, options = {}) {
@@ -1404,57 +1305,23 @@
   }
 
   function syncSelectInPageContext(select, value, text) {
-    const selector = selectorForElement(select);
-    if (!selector) return false;
-
-    const script = document.createElement("script");
-    script.textContent = `
-      (() => {
-        const selector = ${JSON.stringify(selector)};
-        const value = ${JSON.stringify(value)};
-        const text = ${JSON.stringify(text)};
-        const select = document.querySelector(selector);
-        if (!select) return;
-
-        const setValue = () => {
-          if (Array.isArray(value)) {
-            Array.from(select.options || []).forEach((option) => {
-              option.selected = value.includes(option.value);
-            });
-          } else {
-            select.value = value;
-          }
-        };
-
-        setValue();
-        select.dispatchEvent(new Event("input", { bubbles: true }));
-        select.dispatchEvent(new Event("change", { bubbles: true }));
-        select.dispatchEvent(new Event("blur", { bubbles: true }));
-
-        const jq = window.jQuery || window.$;
-        if (jq) {
-          const wrapped = jq(select);
-          wrapped.val(value);
-          wrapped.trigger("input");
-          wrapped.trigger("change");
-          wrapped.trigger({
-            type: "select2:select",
-            params: {
-              data: { id: value, text }
-            }
-          });
-        }
-      })();
-    `;
-
-    try {
-      (document.head || document.documentElement).appendChild(script);
-      script.remove();
-      return true;
-    } catch (_error) {
-      script.remove();
-      return false;
+    if (Array.isArray(value)) {
+      Array.from(select.options || []).forEach((option) => {
+        option.selected = value.includes(option.value);
+      });
+    } else {
+      select.value = value;
+      Array.from(select.options || []).forEach((option) => {
+        option.selected = String(option.value) === String(value);
+      });
     }
+
+    const container = select.id ? document.querySelector(`#s2id_${cssEscape(select.id)}`) : null;
+    const chosen = container?.querySelector(".select2-chosen");
+    if (chosen && text) chosen.textContent = text;
+
+    fireInputEvents(select);
+    return true;
   }
 
   async function fillCombobox(combo, value) {
@@ -1525,13 +1392,8 @@
   async function setTinyMceContent(editorId, html) {
     let filled = false;
 
-    // Content scripts run in an isolated world, so page-level TinyMCE is not
-    // always directly visible here. A short page script reaches the real editor
-    // instance when the site's CSP allows it.
-    filled = injectPageTinyMceUpdate(editorId, html) || filled;
-
     // TinyMCE stores the visible editor in a same-origin iframe. Updating the
-    // iframe body keeps the visible editor and tinyMCE.triggerSave() aligned.
+    // iframe body avoids inline script injection, which Chrome blocks under CSP.
     for (let attempt = 0; attempt < 10; attempt += 1) {
       const iframeFilled = setTinyMceIframeBody(`${editorId}_ifr`, html);
       filled = iframeFilled || filled;
@@ -1547,35 +1409,6 @@
     }
 
     return filled;
-  }
-
-  function injectPageTinyMceUpdate(editorId, html) {
-    const script = document.createElement("script");
-    script.textContent = `
-      (() => {
-        const editorId = ${JSON.stringify(editorId)};
-        const html = ${JSON.stringify(html)};
-        const tinyMce = window.tinyMCE || window.tinymce;
-        const editor = tinyMce && tinyMce.get && tinyMce.get(editorId);
-        if (!editor) return;
-        editor.setContent(html);
-        editor.save();
-        if (editor.fire) {
-          editor.fire("input");
-          editor.fire("change");
-          editor.fire("blur");
-        }
-      })();
-    `;
-
-    try {
-      (document.head || document.documentElement).appendChild(script);
-      script.remove();
-      return true;
-    } catch (_error) {
-      script.remove();
-      return false;
-    }
   }
 
   function setTinyMceIframeBody(iframeId, html) {
@@ -1788,7 +1621,7 @@
         entries.push({ level: "info", message });
       },
       warn(message) {
-        console.warn(LOG_PREFIX, message);
+        console.info(LOG_PREFIX, `WARN: ${message}`);
         entries.push({ level: "warn", message });
       }
     };
