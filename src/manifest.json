@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "D&D Beyond Homebrew Importer",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Locally autofills D&D Beyond homebrew item and spell forms from structured JSON. Never saves the main entry automatically.",
   "permissions": [
     "activeTab",
@@ -22,6 +22,7 @@
         "https://www.dndbeyond.com/homebrew/creations/create-*",
         "https://www.dndbeyond.com/homebrew/creations/edit-*",
         "https://www.dndbeyond.com/homebrew/creations/magic-items/*",
+        "https://www.dndbeyond.com/homebrew/creations/spells/*",
         "https://www.dndbeyond.com/modifier/create/*",
         "https://www.dndbeyond.com/modifier/edit/*",
         "https://www.dndbeyond.com/magic-items/condition/create/*",
@@ -40,6 +41,7 @@
         "https://dndbeyond.com/homebrew/creations/create-*",
         "https://dndbeyond.com/homebrew/creations/edit-*",
         "https://dndbeyond.com/homebrew/creations/magic-items/*",
+        "https://dndbeyond.com/homebrew/creations/spells/*",
         "https://dndbeyond.com/modifier/create/*",
         "https://dndbeyond.com/modifier/edit/*",
         "https://dndbeyond.com/magic-items/condition/create/*",
