@@ -86,6 +86,8 @@ dndbeyond-homebrew-importer/
   package.json
   manifest.json
   README.md
+  docs/
+    homebrew-json-authoring-template.md
   examples/
     erdtree-longsword.json
     moonveil.json

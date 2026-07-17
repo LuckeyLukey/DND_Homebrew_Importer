@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "D&D Beyond Homebrew Importer",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Locally autofills D&D Beyond homebrew item and spell forms from structured JSON. Never saves the main entry automatically.",
   "permissions": [
     "activeTab",
