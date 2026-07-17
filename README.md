@@ -318,7 +318,7 @@ Every found or missing field is logged in the popup and in the page console with
 
 D&D Beyond pages can be React-heavy and may use custom selects or dynamic modal controls. The content script uses layered matching:
 
-1. Prefer known D&D Beyond field IDs from the current form, such as `#field-name`, `#field-Name`, `#field-rarity`, `#field-item-base-type`, `#field-base-weapon`, `#field-requires-attunement`, `#field-attunement-description`, `#field-item-description-wysiwyg`, `#field-spell-description-wysiwyg`, `#field-notes`, `#field-has-charges`, `#field-number-of-charges`, `#field-charge-reset-condition`, `#field-spell-level`, `#field-spell-school`, `#field-spell-modifier-type`, `#field-spell-modifier-sub-type`, `#field-fixed-value`, `#field-item-condition`, `#field-condition`, and `#field-item-spell`.
+1. Prefer known D&D Beyond field IDs from the current form, such as `#field-name`, `#field-Name`, `#field-rarity`, `#field-item-base-type`, `#field-type`, `#field-base-weapon`, `#field-requires-attunement`, `#field-attunement-description`, `#field-item-description-wysiwyg`, `#field-spell-description-wysiwyg`, `#field-notes`, `#field-has-charges`, `#field-number-of-charges`, `#field-charge-reset-condition`, `#field-spell-level`, `#field-spell-school`, `#field-spell-modifier-type`, `#field-spell-modifier-sub-type`, `#field-fixed-value`, `#field-item-condition`, `#field-condition`, and `#field-item-spell`.
 2. Fill TinyMCE-backed description fields with CSP-safe DOM updates to the visible editor iframe and the hidden WYSIWYG/markup textareas.
 3. Find fallback controls by associated labels, wrapping labels, nearby container text, placeholder, name, id, aria-label, test id, and class.
 4. For select-like values, try native `<select>` first.

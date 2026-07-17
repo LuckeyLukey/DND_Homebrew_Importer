@@ -93,7 +93,7 @@
       "magic item type",
       "item type"
     ], {
-      selectors: ["#field-magic-item-type"],
+      selectors: ["#field-type", "#field-magic-item-type"],
       warnOnMissing: false
     });
     await fillSelectLike(report, "Base Weapon", item.baseWeapon, [
