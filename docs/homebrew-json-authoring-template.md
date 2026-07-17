@@ -19,6 +19,7 @@ Wenn du aus Kampagnen-Notizen ein Homebrew fuer den Importer generierst:
 9. Verwende fuer Dropdown-Werte sichtbare D&D-Beyond-Labels, z. B. `Rare`, `Longsword`, `Evocation`, `Action`, `Long Rest`.
 10. Erzeuge keine kampagnenspezifischen Feldnamen wie `ashOfWar`. Kampagnenspezifische Faehigkeiten gehoeren in `actions` oder in die `description`.
 11. Das Add-on speichert die Hauptseite nie automatisch. Erzeuge trotzdem vollstaendige Daten fuer Erstimport und zweiten Edit-Import.
+12. Schreibe optionale Zahlenfelder nicht mit `0`, wenn sie keine Wirkung haben. Lasse sie weg. Beispiele: kein `duration: 0`, kein `fixedValue: 0`, kein `diceCount: 0`.
 
 ## Minimaler Magic-Item-Import
 
@@ -81,11 +82,9 @@ Nutze diese Struktur fuer Waffen, Ruestungen und generische Magic Items. Entfern
       "subType": "Melee Weapon Attacks",
       "value": 1,
       "abilityScore": "",
-      "diceCount": 0,
       "dieType": "",
       "additionalBonusTypes": [],
       "details": "The item grants a +1 bonus to melee weapon attacks.",
-      "durationInterval": 0,
       "durationUnit": "",
       "requiresAttunement": false
     }
@@ -209,8 +208,6 @@ Nutze diese Struktur fuer Homebrew Spells. Entferne Felder, die nicht passen.
       "subType": "Radiant",
       "diceCount": 6,
       "dieType": "d6",
-      "value": 0,
-      "duration": 0,
       "durationUnit": "",
       "usePrimaryStat": false,
       "details": "Radiant damage dealt by the spell."
@@ -232,7 +229,6 @@ Nutze diese Struktur fuer Homebrew Spells. Entferne Felder, die nicht passen.
       "effect": "Additional Points",
       "diceCount": 1,
       "dieType": "d6",
-      "fixedValue": 0,
       "details": "Damage increases by 1d6 for each spell slot level above 3rd."
     }
   ]
@@ -260,6 +256,7 @@ Nutze diese Struktur fuer Homebrew Spells. Entferne Felder, die nicht passen.
 - `attackType`: Z. B. `Melee`, `Ranged` oder leer lassen, wenn der Spell keinen Angriffswurf nutzt.
 - `saveType`: Z. B. `Strength`, `Dexterity`, `Constitution`, `Intelligence`, `Wisdom`, `Charisma` oder leer lassen.
 - `spellModifiers`: Unterseiten-Eintraege fuer mechanische Effekte.
+- Bei `spellModifiers`, `modifiers` und `higherLevels` optionale Zahlenfelder mit Wert `0` weglassen. D&D Beyond validiert einige dieser Felder mit Mindestwert `1`.
 - `spellConditions.effect`: Einer von `Apply`, `Remove`, `Suppress`.
 - `higherLevels.effect`: D&D-Beyond-Scale-Effect. Gueltige Werte: `Additional Count`, `Additional Creatures`, `Additional Points`, `Additional Targets`, `Extended Area`, `Extended Duration`, `Extended Range`, `Special`.
 - Fuer zusaetzliche Schadens- oder Heilwuerfel bei `higherLevels` verwende `effect: "Additional Points"` zusammen mit `diceCount` und `dieType`.

@@ -989,7 +989,7 @@
       warnOnMissing: false
     }) || filled;
 
-    if (modifier.value !== undefined) {
+    if (hasNonZeroNumericValue(modifier.value)) {
       filled = await fillTextField(report, "Modifier Value", String(modifier.value), [
         "fixed value",
         "value",
@@ -999,15 +999,19 @@
         selectors: ["#field-fixed-value"],
         warnOnMissing: false
       }) || filled;
+    } else if (isExplicitZero(modifier.value)) {
+      report.info("Modifier Value: skipped explicit 0.");
     }
 
-    if (modifier.diceCount !== undefined) {
+    if (hasPositiveNumericValue(modifier.diceCount)) {
       filled = await fillTextField(report, "Modifier Dice Count", String(modifier.diceCount), [
         "dice count"
       ], {
         selectors: ["#field-dice-count"],
         warnOnMissing: false
       }) || filled;
+    } else if (isExplicitZero(modifier.diceCount)) {
+      report.info("Modifier Dice Count: skipped explicit 0.");
     }
 
     filled = await fillSelectLike(report, "Modifier Die Type", modifier.dieType || modifier.diceType, [
@@ -1037,30 +1041,38 @@
       }) || filled;
     }
 
-    if (modifier.durationInterval !== undefined) {
+    if (hasPositiveNumericValue(modifier.durationInterval)) {
       filled = await fillTextField(report, "Modifier Duration Interval", String(modifier.durationInterval), [
         "duration interval"
       ], {
         selectors: ["#field-duration-interval", "#field-duration"],
         warnOnMissing: false
       }) || filled;
+    } else if (isExplicitZero(modifier.durationInterval)) {
+      report.info("Modifier Duration Interval: skipped explicit 0.");
     }
 
-    if (modifier.duration !== undefined) {
+    if (hasPositiveNumericValue(modifier.duration)) {
       filled = await fillTextField(report, "Modifier Duration", String(modifier.duration), [
         "duration"
       ], {
         selectors: ["#field-duration", "#field-duration-interval"],
         warnOnMissing: false
       }) || filled;
+    } else if (isExplicitZero(modifier.duration)) {
+      report.info("Modifier Duration: skipped explicit 0.");
     }
 
-    filled = await fillSelectLike(report, "Modifier Duration Unit", modifier.durationUnit, [
-      "duration unit"
-    ], {
-      selectors: ["#field-duration-unit"],
-      warnOnMissing: false
-    }) || filled;
+    if (hasPositiveNumericValue(modifier.duration) || hasPositiveNumericValue(modifier.durationInterval)) {
+      filled = await fillSelectLike(report, "Modifier Duration Unit", modifier.durationUnit, [
+        "duration unit"
+      ], {
+        selectors: ["#field-duration-unit"],
+        warnOnMissing: false
+      }) || filled;
+    } else if (modifier.durationUnit) {
+      report.info("Modifier Duration Unit: skipped because duration is empty or 0.");
+    }
 
     if (typeof modifier.requiresAttunement === "boolean") {
       filled = await fillCheckbox(report, "Modifier Requires Attunement", modifier.requiresAttunement, [
@@ -1119,7 +1131,7 @@
       selectors: ["#field-item-condition", "#field-condition"]
     }) || filled;
 
-    if (condition.duration !== undefined) {
+    if (hasPositiveNumericValue(condition.duration)) {
       filled = await fillTextField(report, "Condition Duration", String(condition.duration), [
         "condition duration",
         "duration"
@@ -1127,6 +1139,8 @@
         selectors: ["#field-condition-duration"],
         warnOnMissing: false
       }) || filled;
+    } else if (isExplicitZero(condition.duration)) {
+      report.info("Condition Duration: skipped explicit 0.");
     }
 
     filled = await fillSelectLike(report, "Condition Duration Unit", condition.durationUnit, [
@@ -1246,13 +1260,15 @@
       selectors: ["#field-effect-type"]
     }) || filled;
 
-    if (higherLevel.diceCount !== undefined) {
+    if (hasPositiveNumericValue(higherLevel.diceCount)) {
       filled = await fillTextField(report, "Higher Level Dice Count", String(higherLevel.diceCount), [
         "dice count"
       ], {
         selectors: ["#field-dice-count"],
         warnOnMissing: false
       }) || filled;
+    } else if (isExplicitZero(higherLevel.diceCount)) {
+      report.info("Higher Level Dice Count: skipped explicit 0.");
     }
 
     filled = await fillSelectLike(report, "Higher Level Die Type", higherLevel.dieType || higherLevel.diceType, [
@@ -1263,13 +1279,15 @@
       warnOnMissing: false
     }) || filled;
 
-    if (higherLevel.fixedValue !== undefined || higherLevel.value !== undefined) {
+    if (hasNonZeroNumericValue(higherLevel.fixedValue ?? higherLevel.value)) {
       filled = await fillTextField(report, "Higher Level Fixed Value", String(higherLevel.fixedValue ?? higherLevel.value), [
         "fixed value"
       ], {
         selectors: ["#field-dice-fixed"],
         warnOnMissing: false
       }) || filled;
+    } else if (isExplicitZero(higherLevel.fixedValue ?? higherLevel.value)) {
+      report.info("Higher Level Fixed Value: skipped explicit 0.");
     }
 
     if (higherLevel.details) {
@@ -1307,6 +1325,22 @@
     };
 
     return aliases[normalized] || value;
+  }
+
+  function hasPositiveNumericValue(value) {
+    if (value === undefined || value === null || value === "") return false;
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) ? numberValue > 0 : true;
+  }
+
+  function hasNonZeroNumericValue(value) {
+    if (value === undefined || value === null || value === "") return false;
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) ? numberValue !== 0 : true;
+  }
+
+  function isExplicitZero(value) {
+    return value !== undefined && value !== null && value !== "" && Number(value) === 0;
   }
 
   function findModifierCreateUrl() {
